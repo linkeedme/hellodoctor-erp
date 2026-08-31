@@ -1,6 +1,12 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import pg from "pg";
 
+if (!process.env.DATABASE_URL || !process.env.DATABASE_URL_SERVICO) {
+  throw new Error(
+    "DATABASE_URL e DATABASE_URL_SERVICO precisam estar definidas. Rode `npm run db:efemero` e exporte as variáveis. Esta suíte NÃO pula: uma suíte de segurança que some sozinha é pior do que uma que falha.",
+  );
+}
+
 const URL_SERVICO = process.env.DATABASE_URL_SERVICO ?? "";
 const URL_APP = process.env.DATABASE_URL ?? "";
 
