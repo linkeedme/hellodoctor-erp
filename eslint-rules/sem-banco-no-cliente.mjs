@@ -1,11 +1,10 @@
-const MODULOS_PROIBIDOS = [
-  /(?:^|\/)db\/[^/]+$/, // @/db/client, ../db/client, ../../db/onboarding
-  /^kysely$/,
-  /^pg$/,
-];
-
-function ehModuloProibido(fonte) {
-  return typeof fonte === "string" && MODULOS_PROIBIDOS.some((p) => p.test(fonte));
+export function ehModuloProibido(fonte) {
+  if (typeof fonte !== "string") return false;
+  if (fonte === "kysely" || fonte === "pg") return true;
+  // só caminhos do próprio projeto: alias @/ ou relativo ./ ../
+  if (!/^(?:@\/|\.{1,2}\/)/.test(fonte)) return false;
+  // qualquer profundidade sob um diretório db/
+  return /(?:^|\/)db(?:\/|$)/.test(fonte);
 }
 
 function reportarSeProibido(context, node, fonte) {
