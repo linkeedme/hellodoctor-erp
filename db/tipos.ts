@@ -27,8 +27,16 @@ export interface TabelaMembro {
   criado_em: Criado;
 }
 
+export interface TabelaPapel {
+  id: Generated<string>;
+  chave: string;
+  nome: string;
+  criado_em: Criado;
+}
+
 export interface BancoHelloDoctor {
   clinica: TabelaClinica;
   usuario: TabelaUsuario;
   membro: TabelaMembro;
+  papel: TabelaPapel;
 }
