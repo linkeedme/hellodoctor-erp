@@ -736,119 +736,190 @@ RF-001, RF-002, RF-006."
 
 ---
 
-## Task 3: Login com `clinica_id` no token
+## Task 3: Sessão com Supabase Auth e clínica ativa
+
+> **Esta tarefa foi reescrita em 30/08/2026.** A versão original especificava login por email e senha com hash argon2 e uma coluna `senha_hash`. Essa coluna nunca existiu: o schema real de `usuario` é `(id, nome, email, auth_provider_id unique, criado_em)`, desenhado para identidade delegada a provedor externo — como o próprio spec pede na tabela de stack. Provedor escolhido pelo dono: **Supabase Auth**, o mesmo fornecedor do Postgres gerenciado em região Brasil.
 
 **Files:**
-- Create: `lib/auth/config.ts`, `lib/auth/sessao.ts`, `lib/auth/senha.ts`
+- Create: `lib/auth/consultas.ts`, `lib/auth/supabase-servidor.ts`, `lib/auth/sessao.ts`
+- Create: `middleware.ts`
 - Create: `app/login/page.tsx`, `app/login/action.ts`
-- Create: `app/(autenticado)/layout.tsx`
-- Create: `app/(autenticado)/trocar-clinica/action.ts`
-- Create: `db/seed/usuario-teste.ts`
+- Create: `app/(autenticado)/layout.tsx`, `app/(autenticado)/trocar-clinica/action.ts`
+- Create: `db/seed/usuario-dev.ts`
+- Modify: `package.json` (dependências do Supabase), `.env.example`
 - Test: `tests/rls-smoke/sessao.test.ts`
 
 **Interfaces:**
-- Consumes: `comClinica`, `comServico`, `ContextoRequest` da Task 2
+- Consumes: `comClinica`, `comServico`, `ContextoRequest`, `BancoHelloDoctor` (Task 2)
 - Produces:
-  - `obterSessao(): Promise<SessaoAtiva | null>` — sessão do request atual
-  - `SessaoAtiva = { usuarioId: string; clinicaId: string; papel: string; clinicasDisponiveis: { id: string; razaoSocial: string }[] }`
-  - `exigirSessao(): Promise<SessaoAtiva>` — lança/redireciona se não houver sessão com clínica ativa
-  - `trocarClinica(clinicaId: string): Promise<void>`
+  - `resolverUsuarioPorAuthId(authProviderId: string): Promise<{ id: string; nome: string; email: string } | null>`
+  - `resolverClinicasDoUsuario(usuarioId: string): Promise<ClinicaDisponivel[]>` onde `ClinicaDisponivel = { id: string; razaoSocial: string }`
+  - `resolverPapel(usuarioId: string, clinicaId: string): Promise<{ id: string; chave: string; nome: string } | null>`
+  - `obterSessao(): Promise<SessaoAtiva | null>` onde `SessaoAtiva = { usuarioId: string; clinicaId: string; papelChave: string; clinicasDisponiveis: ClinicaDisponivel[] }`
+  - `exigirSessao(): Promise<SessaoAtiva>`
+  - `definirClinicaAtiva(clinicaId: string): Promise<void>`
 
-- [ ] **Step 1: Escrever o teste que define a regra central**
+**Onde o `clinica_id` vive (decisão registrada):** na sessão do servidor, num cookie assinado — **não** como custom claim no JWT do Supabase. Motivo: a Decisão 2 do spec proíbe o navegador de falar com o banco, então não usamos PostgREST e o claim não teria consumidor. Um custom claim exigiria um Auth Hook configurado no painel do Supabase, fora do versionamento, que ninguém revisa em PR. O cookie é código, é revisável, e alimenta o `set_config` do RLS igual.
 
-A regra do RF-003: **login sem clínica ativa não gera token válido para rota de domínio.** Um usuário existe globalmente (tabela `usuario` é de plataforma), mas só opera dentro de uma clínica onde tem `membro` ativo.
+**Limitação honesta desta tarefa:** não há Supabase CLI nesta máquina, logo não há stack local de identidade. Os testes cobrem a camada que é nossa — resolução de usuário, clínicas, papel e a regra do RF-003 — contra o Postgres local. O fluxo de login pelo Supabase é verificado por typecheck e build, não por teste automatizado. **Não escreva teste que pule silenciosamente quando faltar variável de ambiente**; se um teste precisa de recurso ausente, ele não deve existir nesta tarefa.
+
+- [ ] **Step 1: Escrever o teste da regra central (RF-003)**
+
+A regra: **um usuário só tem sessão válida numa clínica onde é `membro` ativo.** Existir em `usuario` não basta.
 
 Em `tests/rls-smoke/sessao.test.ts`:
 
 ```ts
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import pg from "pg";
-import { resolverClinicasDoUsuario } from "@/lib/auth/sessao";
+import {
+  resolverUsuarioPorAuthId,
+  resolverClinicasDoUsuario,
+  resolverPapel,
+} from "@/lib/auth/consultas";
+
+const URL_SERVICO = process.env.DATABASE_URL_SERVICO;
+if (!URL_SERVICO) {
+  throw new Error(
+    "DATABASE_URL_SERVICO não definida. Suba o banco com `npm run db:efemero` " +
+      "e exporte as variáveis antes de rodar os testes. Este teste NÃO pula: " +
+      "uma suíte de segurança que some sozinha é pior do que uma que falha.",
+  );
+}
 
 let servico: pg.Client;
-const USUARIO_COM_CLINICA = "aaaaaaaa-0000-0000-0000-000000000001";
-const USUARIO_SEM_CLINICA = "aaaaaaaa-0000-0000-0000-000000000002";
-const CLINICA_A = "11111111-1111-1111-1111-111111111111";
+const CLINICA = "33333333-3333-3333-3333-333333333333";
+const AUTH_COM = "auth-provider-com-clinica";
+const AUTH_SEM = "auth-provider-sem-clinica";
+let usuarioComId = "";
+let usuarioSemId = "";
+let papelDonaId = "";
 
 beforeAll(async () => {
-  servico = new pg.Client({ connectionString: process.env.DATABASE_URL_SERVICO });
+  servico = new pg.Client({ connectionString: URL_SERVICO });
   await servico.connect();
+
   await servico.query(
-    `insert into clinica (id, razao_social, cnpj) values ($1,'Clinica A','11111111000191')
-     on conflict (id) do nothing`, [CLINICA_A]);
+    `insert into clinica (id, razao_social, cnpj)
+     values ($1, 'Clinica Sessao', '33333333000191')
+     on conflict (id) do nothing`,
+    [CLINICA],
+  );
+
+  const papel = await servico.query<{ id: string }>(
+    `insert into papel (chave, nome) values ('dona', 'Dona da clínica')
+     on conflict (chave) do update set nome = excluded.nome
+     returning id`,
+  );
+  papelDonaId = papel.rows[0]!.id;
+
+  const com = await servico.query<{ id: string }>(
+    `insert into usuario (nome, email, auth_provider_id)
+     values ('Com Clinica', 'com@teste.local', $1)
+     on conflict (auth_provider_id) do update set nome = excluded.nome
+     returning id`,
+    [AUTH_COM],
+  );
+  usuarioComId = com.rows[0]!.id;
+
+  const sem = await servico.query<{ id: string }>(
+    `insert into usuario (nome, email, auth_provider_id)
+     values ('Sem Clinica', 'sem@teste.local', $1)
+     on conflict (auth_provider_id) do update set nome = excluded.nome
+     returning id`,
+    [AUTH_SEM],
+  );
+  usuarioSemId = sem.rows[0]!.id;
+
   await servico.query(
-    `insert into usuario (id, email, senha_hash, nome) values
-       ($1, 'com@teste.local', 'x', 'Com Clinica'),
-       ($2, 'sem@teste.local', 'x', 'Sem Clinica')
-     on conflict (id) do nothing`, [USUARIO_COM_CLINICA, USUARIO_SEM_CLINICA]);
-  await servico.query(
-    `insert into membro (clinica_id, usuario_id, papel) values ($1, $2, 'dona')
-     on conflict do nothing`, [CLINICA_A, USUARIO_COM_CLINICA]);
+    `insert into membro (clinica_id, usuario_id, papel_id)
+     values ($1, $2, $3)
+     on conflict (clinica_id, usuario_id) do update set ativo = true`,
+    [CLINICA, usuarioComId, papelDonaId],
+  );
 });
 
-afterAll(async () => { await servico?.end(); });
+afterAll(async () => {
+  await servico?.end();
+});
 
-describe("sessão exige clínica ativa (RF-003)", () => {
+describe("identidade vem do provedor externo", () => {
+  it("resolve o usuário pelo auth_provider_id", async () => {
+    const u = await resolverUsuarioPorAuthId(AUTH_COM);
+    expect(u?.id).toBe(usuarioComId);
+    expect(u?.email).toBe("com@teste.local");
+  });
+
+  it("devolve null para auth_provider_id desconhecido", async () => {
+    expect(await resolverUsuarioPorAuthId("nao-existe")).toBeNull();
+  });
+});
+
+describe("sessão exige membro ativo (RF-003)", () => {
   it("usuário com membro ativo recebe a clínica", async () => {
-    const clinicas = await resolverClinicasDoUsuario(USUARIO_COM_CLINICA);
+    const clinicas = await resolverClinicasDoUsuario(usuarioComId);
     expect(clinicas).toHaveLength(1);
-    expect(clinicas[0]?.id).toBe(CLINICA_A);
+    expect(clinicas[0]?.id).toBe(CLINICA);
   });
 
   it("usuário sem membro não recebe nenhuma clínica", async () => {
-    const clinicas = await resolverClinicasDoUsuario(USUARIO_SEM_CLINICA);
-    expect(clinicas).toHaveLength(0);
+    expect(await resolverClinicasDoUsuario(usuarioSemId)).toHaveLength(0);
   });
 
   it("membro inativo não conta como clínica disponível", async () => {
-    await servico.query(
-      "update membro set ativo = false where usuario_id = $1", [USUARIO_COM_CLINICA]);
-    const clinicas = await resolverClinicasDoUsuario(USUARIO_COM_CLINICA);
-    expect(clinicas).toHaveLength(0);
-    await servico.query(
-      "update membro set ativo = true where usuario_id = $1", [USUARIO_COM_CLINICA]);
+    await servico.query("update membro set ativo = false where usuario_id = $1", [usuarioComId]);
+    expect(await resolverClinicasDoUsuario(usuarioComId)).toHaveLength(0);
+    await servico.query("update membro set ativo = true where usuario_id = $1", [usuarioComId]);
+  });
+
+  it("clínica inativa não conta como disponível", async () => {
+    await servico.query("update clinica set ativa = false where id = $1", [CLINICA]);
+    expect(await resolverClinicasDoUsuario(usuarioComId)).toHaveLength(0);
+    await servico.query("update clinica set ativa = true where id = $1", [CLINICA]);
+  });
+});
+
+describe("papel vem por FK, não por string", () => {
+  it("resolve chave e nome do papel do membro", async () => {
+    const papel = await resolverPapel(usuarioComId, CLINICA);
+    expect(papel?.chave).toBe("dona");
+    expect(papel?.nome).toBe("Dona da clínica");
+  });
+
+  it("devolve null para usuário sem membro naquela clínica", async () => {
+    expect(await resolverPapel(usuarioSemId, CLINICA)).toBeNull();
   });
 });
 ```
 
 - [ ] **Step 2: Rodar e confirmar que falha**
 
-Run: `npx vitest run tests/rls-smoke/sessao.test.ts`
-Expected: FAIL — `resolverClinicasDoUsuario` não existe.
+Run: `npm run db:efemero` e, com as variáveis exportadas, `npx vitest run tests/rls-smoke/sessao.test.ts`
+Expected: FAIL — `@/lib/auth/consultas` não existe.
 
-- [ ] **Step 3: Escrever `lib/auth/senha.ts`**
+- [ ] **Step 3: Escrever `lib/auth/consultas.ts`**
 
-```ts
-import { hash, verify } from "@node-rs/argon2";
-
-export async function gerarHash(senha: string): Promise<string> {
-  return hash(senha, { memoryCost: 19456, timeCost: 2, parallelism: 1 });
-}
-
-export async function conferirSenha(hashArmazenado: string, senha: string): Promise<boolean> {
-  try {
-    return await verify(hashArmazenado, senha);
-  } catch {
-    return false;
-  }
-}
-```
-
-- [ ] **Step 4: Escrever `lib/auth/sessao.ts`**
-
-`resolverClinicasDoUsuario` usa `comServico` porque roda **antes** de existir clínica ativa — é exatamente o caso (a) previsto para o role privilegiado.
+Usa `comServico` porque roda **antes** de existir clínica ativa — é o caso (a) previsto para o role privilegiado na Task 2.
 
 ```ts
+import "server-only";
 import { comServico } from "@/db/onboarding";
 
 export type ClinicaDisponivel = { id: string; razaoSocial: string };
+export type PapelResolvido = { id: string; chave: string; nome: string };
 
-export type SessaoAtiva = {
-  usuarioId: string;
-  clinicaId: string;
-  papel: string;
-  clinicasDisponiveis: ClinicaDisponivel[];
-};
+export async function resolverUsuarioPorAuthId(
+  authProviderId: string,
+): Promise<{ id: string; nome: string; email: string } | null> {
+  return comServico(async (db) => {
+    const linha = await db
+      .selectFrom("usuario")
+      .select(["id", "nome", "email"])
+      .where("auth_provider_id", "=", authProviderId)
+      .executeTakeFirst();
+    return linha ?? null;
+  });
+}
 
 export async function resolverClinicasDoUsuario(
   usuarioId: string,
@@ -861,6 +932,7 @@ export async function resolverClinicasDoUsuario(
       .where("membro.usuario_id", "=", usuarioId)
       .where("membro.ativo", "=", true)
       .where("clinica.ativa", "=", true)
+      .orderBy("clinica.razao_social")
       .execute();
     return linhas.map((l) => ({ id: l.id, razaoSocial: l.razaoSocial }));
   });
@@ -869,120 +941,118 @@ export async function resolverClinicasDoUsuario(
 export async function resolverPapel(
   usuarioId: string,
   clinicaId: string,
-): Promise<string | null> {
+): Promise<PapelResolvido | null> {
   return comServico(async (db) => {
     const linha = await db
       .selectFrom("membro")
-      .select("papel")
-      .where("usuario_id", "=", usuarioId)
-      .where("clinica_id", "=", clinicaId)
-      .where("ativo", "=", true)
+      .innerJoin("papel", "papel.id", "membro.papel_id")
+      .select(["papel.id as id", "papel.chave as chave", "papel.nome as nome"])
+      .where("membro.usuario_id", "=", usuarioId)
+      .where("membro.clinica_id", "=", clinicaId)
+      .where("membro.ativo", "=", true)
       .executeTakeFirst();
-    return linha?.papel ?? null;
+    return linha ?? null;
   });
 }
 ```
 
-- [ ] **Step 5: Rodar o teste e confirmar que passa**
+Se `db/tipos.ts` ainda não declarar `papel`, acrescente a interface seguindo o schema (`id`, `chave`, `nome`, `criado_em`) e registre-a em `BancoHelloDoctor`.
+
+- [ ] **Step 4: Rodar e confirmar que passa**
 
 Run: `npx vitest run tests/rls-smoke/sessao.test.ts`
-Expected: PASS, os 3 testes.
+Expected: PASS, os 8 testes.
 
-- [ ] **Step 6: Escrever `lib/auth/config.ts`**
+- [ ] **Step 5: Instalar o Supabase e escrever o cliente de servidor**
 
-O claim de `clinica_id` entra no JWT. Usuário sem nenhuma clínica disponível não autentica — é a regra do Step 1 aplicada no fluxo real.
-
-```ts
-import NextAuth from "next-auth";
-import Credentials from "next-auth/providers/credentials";
-import { z } from "zod";
-import { comServico } from "@/db/onboarding";
-import { conferirSenha } from "./senha";
-import { resolverClinicasDoUsuario, resolverPapel } from "./sessao";
-
-const entrada = z.object({
-  email: z.string().email(),
-  senha: z.string().min(8),
-});
-
-export const { handlers, signIn, signOut, auth } = NextAuth({
-  session: { strategy: "jwt", maxAge: 60 * 60 },
-  pages: { signIn: "/login" },
-  providers: [
-    Credentials({
-      credentials: { email: {}, senha: {} },
-      async authorize(bruto) {
-        const dados = entrada.safeParse(bruto);
-        if (!dados.success) return null;
-
-        const usuario = await comServico((db) =>
-          db.selectFrom("usuario")
-            .select(["id", "senha_hash", "nome", "ativo"])
-            .where("email", "=", dados.data.email)
-            .executeTakeFirst(),
-        );
-        if (!usuario || !usuario.ativo) return null;
-        if (!(await conferirSenha(usuario.senha_hash, dados.data.senha))) return null;
-
-        const clinicas = await resolverClinicasDoUsuario(usuario.id);
-        if (clinicas.length === 0) return null;
-
-        const primeira = clinicas[0];
-        if (!primeira) return null;
-
-        return {
-          id: usuario.id,
-          name: usuario.nome,
-          clinicaId: primeira.id,
-          papel: (await resolverPapel(usuario.id, primeira.id)) ?? "sem-papel",
-        };
-      },
-    }),
-  ],
-  callbacks: {
-    async jwt({ token, user, trigger, session }) {
-      if (user) {
-        token.usuarioId = user.id;
-        token.clinicaId = (user as { clinicaId: string }).clinicaId;
-        token.papel = (user as { papel: string }).papel;
-      }
-      if (trigger === "update" && session?.clinicaId) {
-        token.clinicaId = session.clinicaId as string;
-        token.papel =
-          (await resolverPapel(token.usuarioId as string, session.clinicaId as string)) ??
-          "sem-papel";
-      }
-      return token;
-    },
-    async session({ session, token }) {
-      return Object.assign(session, {
-        usuarioId: token.usuarioId,
-        clinicaId: token.clinicaId,
-        papel: token.papel,
-      });
-    },
-  },
-});
+```bash
+npm install @supabase/supabase-js@2.47.10 @supabase/ssr@0.5.2
 ```
 
-- [ ] **Step 7: Escrever `exigirSessao` e o shell autenticado**
-
-Acrescentar em `lib/auth/sessao.ts`:
+Em `lib/auth/supabase-servidor.ts`:
 
 ```ts
+import "server-only";
+import { createServerClient } from "@supabase/ssr";
+import { cookies } from "next/headers";
+
+export async function clienteSupabaseServidor() {
+  const armazem = await cookies();
+  return createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll: () => armazem.getAll(),
+        setAll: (lista) => {
+          try {
+            for (const { name, value, options } of lista) {
+              armazem.set(name, value, options);
+            }
+          } catch {
+            // chamado de Server Component: o middleware cuida do refresh
+          }
+        },
+      },
+    },
+  );
+}
+```
+
+Acrescentar ao `.env.example`:
+
+```
+NEXT_PUBLIC_SUPABASE_URL=https://SEU-PROJETO.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=chave-anon-do-projeto
+```
+
+- [ ] **Step 6: Escrever `lib/auth/sessao.ts`**
+
+```ts
+import "server-only";
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { auth } from "./config";
+import { clienteSupabaseServidor } from "./supabase-servidor";
+import {
+  resolverUsuarioPorAuthId,
+  resolverClinicasDoUsuario,
+  resolverPapel,
+  type ClinicaDisponivel,
+} from "./consultas";
+
+const COOKIE_CLINICA = "hd_clinica_ativa";
+
+export type SessaoAtiva = {
+  usuarioId: string;
+  clinicaId: string;
+  papelChave: string;
+  clinicasDisponiveis: ClinicaDisponivel[];
+};
 
 export async function obterSessao(): Promise<SessaoAtiva | null> {
-  const s = await auth();
-  if (!s) return null;
-  const bruto = s as unknown as { usuarioId?: string; clinicaId?: string; papel?: string };
-  if (!bruto.usuarioId || !bruto.clinicaId) return null;
+  const supabase = await clienteSupabaseServidor();
+  const { data } = await supabase.auth.getUser();
+  if (!data.user) return null;
+
+  const usuario = await resolverUsuarioPorAuthId(data.user.id);
+  if (!usuario) return null;
+
+  const disponiveis = await resolverClinicasDoUsuario(usuario.id);
+  if (disponiveis.length === 0) return null;
+
+  const armazem = await cookies();
+  const pedida = armazem.get(COOKIE_CLINICA)?.value;
+  const escolhida =
+    disponiveis.find((c) => c.id === pedida) ?? disponiveis[0]!;
+
+  const papel = await resolverPapel(usuario.id, escolhida.id);
+  if (!papel) return null;
+
   return {
-    usuarioId: bruto.usuarioId,
-    clinicaId: bruto.clinicaId,
-    papel: bruto.papel ?? "sem-papel",
-    clinicasDisponiveis: await resolverClinicasDoUsuario(bruto.usuarioId),
+    usuarioId: usuario.id,
+    clinicaId: escolhida.id,
+    papelChave: papel.chave,
+    clinicasDisponiveis: disponiveis,
   };
 }
 
@@ -990,6 +1060,101 @@ export async function exigirSessao(): Promise<SessaoAtiva> {
   const sessao = await obterSessao();
   if (!sessao) redirect("/login");
   return sessao;
+}
+
+export async function definirClinicaAtiva(clinicaId: string): Promise<void> {
+  const sessao = await exigirSessao();
+  if (!sessao.clinicasDisponiveis.some((c) => c.id === clinicaId)) {
+    throw new Error("Clínica não disponível para este usuário");
+  }
+  const armazem = await cookies();
+  armazem.set(COOKIE_CLINICA, clinicaId, {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+  });
+}
+```
+
+**Note a validação em `definirClinicaAtiva`:** sem ela, um cookie forjado faria o `set_config` apontar para outro tenant e o RLS filtraria pela clínica errada — com permissão total. É a linha mais importante do arquivo.
+
+`obterSessao` também valida o cookie contra a lista de disponíveis (`disponiveis.find(...)`), então um cookie adulterado degrada para a primeira clínica legítima em vez de vazar.
+
+- [ ] **Step 7: Escrever o middleware de refresh de sessão**
+
+Em `middleware.ts` na raiz:
+
+```ts
+import { createServerClient } from "@supabase/ssr";
+import { NextResponse, type NextRequest } from "next/server";
+
+export async function middleware(request: NextRequest) {
+  const resposta = NextResponse.next({ request });
+
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll: () => request.cookies.getAll(),
+        setAll: (lista) => {
+          for (const { name, value, options } of lista) {
+            resposta.cookies.set(name, value, options);
+          }
+        },
+      },
+    },
+  );
+
+  await supabase.auth.getUser();
+  return resposta;
+}
+
+export const config = {
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|login).*)"],
+};
+```
+
+- [ ] **Step 8: Escrever login, shell autenticado e troca de clínica**
+
+`app/login/action.ts`:
+
+```ts
+"use server";
+
+import { redirect } from "next/navigation";
+import { clienteSupabaseServidor } from "@/lib/auth/supabase-servidor";
+
+export async function entrarComEmail(formData: FormData): Promise<void> {
+  const email = String(formData.get("email") ?? "");
+  const senha = String(formData.get("senha") ?? "");
+
+  const supabase = await clienteSupabaseServidor();
+  const { error } = await supabase.auth.signInWithPassword({ email, password: senha });
+  if (error) redirect("/login?erro=credenciais");
+  redirect("/");
+}
+```
+
+`app/login/page.tsx`:
+
+```tsx
+import { entrarComEmail } from "./action";
+
+export default function PaginaLogin() {
+  return (
+    <main>
+      <h1>Hello Doctor</h1>
+      <form action={entrarComEmail}>
+        <label htmlFor="email">E-mail</label>
+        <input id="email" name="email" type="email" required autoComplete="email" />
+        <label htmlFor="senha">Senha</label>
+        <input id="senha" name="senha" type="password" required autoComplete="current-password" />
+        <button type="submit">Entrar</button>
+      </form>
+    </main>
+  );
 }
 ```
 
@@ -1001,22 +1166,8 @@ import { exigirSessao } from "@/lib/auth/sessao";
 
 export default async function LayoutAutenticado({ children }: { children: ReactNode }) {
   const sessao = await exigirSessao();
-  return (
-    <div data-clinica={sessao.clinicaId}>
-      {children}
-    </div>
-  );
+  return <div data-clinica={sessao.clinicaId}>{children}</div>;
 }
-```
-
-- [ ] **Step 8: Escrever a troca de clínica ativa**
-
-`app/(autenticado)/trocar-clinica/action.ts`:
-
-Em `lib/auth/config.ts`, acrescentar `unstable_update` à desestruturação do `NextAuth`:
-
-```ts
-export const { handlers, signIn, signOut, auth, unstable_update } = NextAuth({
 ```
 
 `app/(autenticado)/trocar-clinica/action.ts`:
@@ -1025,36 +1176,35 @@ export const { handlers, signIn, signOut, auth, unstable_update } = NextAuth({
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { unstable_update as atualizarSessao } from "@/lib/auth/config";
-import { exigirSessao, resolverClinicasDoUsuario } from "@/lib/auth/sessao";
+import { definirClinicaAtiva } from "@/lib/auth/sessao";
 
 export async function trocarClinica(clinicaId: string): Promise<void> {
-  const sessao = await exigirSessao();
-  const disponiveis = await resolverClinicasDoUsuario(sessao.usuarioId);
-  if (!disponiveis.some((c) => c.id === clinicaId)) {
-    throw new Error("Clínica não disponível para este usuário");
-  }
-  await atualizarSessao({ clinicaId });
+  await definirClinicaAtiva(clinicaId);
   revalidatePath("/", "layout");
 }
 ```
 
-O `unstable_update` dispara o callback `jwt` com `trigger === "update"`, que reescreve `token.clinicaId` e recalcula o papel (Step 6). A validação acima é obrigatória: sem ela, um usuário poderia trocar para uma clínica onde não é membro e o RLS passaria a filtrar pelo tenant errado.
+- [ ] **Step 9: Escrever o seed de desenvolvimento**
 
-- [ ] **Step 9: Verificar o conjunto e commitar**
+Em `db/seed/usuario-dev.ts`, um script idempotente que cria clínica, papel, usuário e membro de desenvolvimento a partir de um `auth_provider_id` recebido por argumento — o id que o Supabase devolve ao criar o usuário no painel. Sem isso não há como entrar no sistema depois de autenticar.
 
-Run: `npm run typecheck && npm run lint && npm run test`
-Expected: todos passam.
+O script usa `comServico`, imprime o que criou, e usa `on conflict do nothing` / `do update` para poder rodar mais de uma vez sem duplicar.
+
+- [ ] **Step 10: Verificar e commitar**
+
+Run: `npm run lint && npm run typecheck && npm test`
+Expected: os três passam, com o banco efêmero de pé e as variáveis exportadas.
 
 ```bash
-git add lib/auth/ app/ db/seed/ tests/rls-smoke/sessao.test.ts
-git commit -m "feat(auth): login com claim de clinica_id e troca de clínica ativa
+git add lib/auth/ app/ middleware.ts db/seed/ tests/rls-smoke/sessao.test.ts package.json .env.example
+git commit -m "feat(auth): sessão com Supabase Auth e clínica ativa
 
-Usuário sem membro ativo em nenhuma clínica não autentica. O claim
-alimenta o app.clinica_id do RLS. RF-003."
+Identidade vem do provedor externo via auth_provider_id; o clinica_id
+vive na sessão do servidor e alimenta o RLS. Usuário sem membro ativo
+não obtém sessão. RF-003."
 ```
 
-- [ ] **Step 10: Marco da fatia — verificação final**
+- [ ] **Step 11: Marco da fatia — verificação final**
 
 ```bash
 npm run db:efemero
@@ -1062,9 +1212,9 @@ npm run db:migrate
 npm run lint && npm run typecheck && npm run build && npm test
 ```
 
-Expected: tudo verde. Neste ponto existe um repositório com schema aplicado, isolamento provado por teste automatizado, auditoria imutável verificada, e um login que carrega `clinica_id` no token.
+Neste ponto existe um repositório com schema aplicado, isolamento provado por teste automatizado, auditoria imutável verificada, e uma sessão que carrega a clínica ativa para o RLS.
 
-**O que esta fatia NÃO entrega, de propósito:** RBAC (`Task 0.4`), cadastro de clínica pela interface (`0.5`), a suíte completa de isolamento com manifesto (`0.6`) e a política de visibilidade de paciente (`0.7`). Todos ficam para a Fatia 2.
+**O que esta fatia NÃO entrega, de propósito:** RBAC (tarefa 0.4), cadastro de clínica pela interface (0.5), a suíte completa de isolamento com manifesto (0.6) e a política de visibilidade de paciente (0.7). Ficam para a Fatia 2.
 
 ---
 
