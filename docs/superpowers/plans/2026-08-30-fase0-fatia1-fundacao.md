@@ -557,16 +557,27 @@ describe("isolamento entre clínicas (RF-001)", () => {
 });
 
 describe("auditoria imutável (RF-006)", () => {
+  // Os triggers bloqueia_update/bloqueia_delete são FOR EACH ROW: numa tabela
+  // vazia eles NÃO disparam e o comando retorna sucesso com 0 linhas. Semear
+  // uma linha antes é obrigatório — sem isso o teste falha por motivo errado.
+  beforeAll(async () => {
+    await servico.query(
+      `insert into evento_auditoria (clinica_id, acao, entidade)
+       values ($1, 'leitura', 'paciente')`,
+      [CLINICA_A],
+    );
+  });
+
   it("recusa UPDATE em evento_auditoria", async () => {
     await expect(
       servico.query("update evento_auditoria set acao = 'adulterado' where true"),
-    ).rejects.toThrow();
+    ).rejects.toThrow(/append-only/);
   });
 
   it("recusa DELETE em evento_auditoria", async () => {
     await expect(
       servico.query("delete from evento_auditoria where true"),
-    ).rejects.toThrow();
+    ).rejects.toThrow(/append-only/);
   });
 });
 ```
