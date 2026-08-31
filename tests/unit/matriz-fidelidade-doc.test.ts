@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { MATRIZ, MODULOS, type Modulo, type Operacao } from "@/lib/autorizacao/matriz";
+import { MATRIZ, MODULOS, PAPEIS, type Modulo, type Operacao } from "@/lib/autorizacao/matriz";
 
 /**
  * Confere MATRIZ contra a tabela da seção 4.2 de docs/modulos-e-funcionalidades.md,
@@ -68,12 +68,30 @@ function extrairOperacoesDaCelula(texto: string): Set<Operacao> {
   return operacoes;
 }
 
-function parsearTabela(markdown: string): Celula[] {
+function trechoDaTabela(markdown: string): string {
   const inicio = markdown.indexOf("### 4.2 Matriz por módulo");
   if (inicio === -1) throw new Error("Seção 4.2 não encontrada no documento");
   const fim = markdown.indexOf("**Notas:**", inicio);
   if (fim === -1) throw new Error("Fim da tabela (**Notas:**) não encontrado");
-  const trecho = markdown.slice(inicio, fim);
+  return markdown.slice(inicio, fim);
+}
+
+/** Colunas de papel do cabeçalho da tabela, na ordem do documento (sem a coluna "Módulo"). */
+function colunasDePapelDoCabecalho(markdown: string): string[] {
+  const linhaCabecalho = trechoDaTabela(markdown)
+    .split("\n")
+    .map((l) => l.trim())
+    .find((l) => l.startsWith("|"));
+  if (!linhaCabecalho) throw new Error("Cabeçalho da tabela da seção 4.2 não encontrado");
+  return linhaCabecalho
+    .split("|")
+    .slice(1, -1)
+    .map((c) => c.trim())
+    .slice(1);
+}
+
+function parsearTabela(markdown: string): Celula[] {
+  const trecho = trechoDaTabela(markdown);
 
   const linhas = trecho
     .split("\n")
@@ -118,6 +136,42 @@ describe("MATRIZ bate com docs/modulos-e-funcionalidades.md §4.2", () => {
   it("o parser encontrou células para todos os módulos do escopo", () => {
     const modulosEncontrados = new Set(celulasDoDocumento.map((c) => c.modulo));
     for (const modulo of MODULOS) expect(modulosEncontrados.has(modulo)).toBe(true);
+  });
+
+  it("o parser encontrou todos os papéis do cabeçalho", () => {
+    // Simétrico ao teste de módulos acima. Sem isso, uma coluna renomeada no
+    // documento, um papel novo, ou um erro de digitação em PAPEL_POR_CABECALHO
+    // faz `parsearTabela` devolver `papel = null` pra aquela coluna — e a
+    // coluna inteira some do parsing (`if (!papel) continue`) sem que nenhum
+    // teste perceba. O "esperado" vem de PAPEIS (lista canônica) e do texto
+    // real do cabeçalho lido do arquivo, nunca de PAPEL_POR_CABECALHO — senão
+    // o teste compara o mapa de tradução consigo mesmo e não prova nada.
+    const colunas = colunasDePapelDoCabecalho(markdown);
+
+    const problemas: string[] = [];
+    const papeisReconhecidos = new Set<string>();
+
+    for (const coluna of colunas) {
+      const papel = PAPEL_POR_CABECALHO[coluna];
+      if (!papel) {
+        problemas.push(`coluna do documento não reconhecida: "${coluna}"`);
+      } else {
+        papeisReconhecidos.add(papel);
+      }
+    }
+
+    // "paciente" não tem entrada em MATRIZ — todo acesso dele é via módulo
+    // Portal (POR), fora do escopo desta fatia (mesma decisão da nota da
+    // extração de célula acima). Por isso é descontado do conjunto esperado
+    // aqui; o restante dos papéis precisa aparecer reconhecido no cabeçalho.
+    const esperados = PAPEIS.map((p) => p.chave).filter((chave) => chave !== "paciente");
+    for (const chave of esperados) {
+      if (!papeisReconhecidos.has(chave)) {
+        problemas.push(`papel esperado não apareceu no cabeçalho do documento: "${chave}"`);
+      }
+    }
+
+    expect(problemas).toEqual([]);
   });
 
   it("nenhuma célula do documento diverge de MATRIZ", () => {
