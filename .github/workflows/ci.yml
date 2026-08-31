@@ -18,7 +18,8 @@ jobs:
           --health-timeout 5s --health-retries 5
         ports: ["5432:5432"]
     env:
-      DATABASE_URL: postgres://postgres:postgres@localhost:5432/hello_doctor_test
+      DATABASE_URL_SERVICO: postgres://postgres:postgres@localhost:5432/hello_doctor_test
+      DATABASE_URL: postgres://app_user:app_user@localhost:5432/hello_doctor_test
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -29,4 +30,11 @@ jobs:
       - run: npm run lint
       - run: npm run typecheck
       - run: npm run build
+      - run: npm run db:migrate
+      - run: |
+          psql "$DATABASE_URL_SERVICO" -c \
+            "create role app_user login password 'app_user'; \
+             grant usage on schema public to app_user; \
+             grant select, insert, update, delete on all tables in schema public to app_user; \
+             alter default privileges in schema public grant select, insert, update, delete on tables to app_user;"
       - run: npm test
