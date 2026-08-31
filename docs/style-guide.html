@@ -1,0 +1,1446 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hello Doctor — Style Guide</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+
+/* ============================================================
+   TOKENS — extraídos do Amigo Clinic (ver design-system.md §2)
+   "-forte" = variante derivada só para garantir AA em texto/preenchimento.
+   Tom puro segue em ícone, borda, ponto, linha de gráfico.
+   ============================================================ */
+:root{
+  color-scheme: light;
+
+  /* marca — azul */
+  --cor-primario:#0088FF;
+  --cor-primario-claro:#4DACFF;
+  --cor-primario-forte:#0068B3;
+  --cor-primario-superficie:#F4F9FF;
+  --cor-primario-texto:var(--cor-primario-forte);
+
+  /* apoio — laranja (contexto comercial) */
+  --cor-suporte:#FF8A3D;
+  --cor-suporte-forte:#C15F1E;
+  --cor-suporte-superficie:#FFF3E9;
+  --cor-suporte-texto:var(--cor-suporte-forte);
+
+  /* neutros */
+  --cor-base:#FFFFFF;
+  --cor-neutro-50:#F6F8F9;
+  --cor-neutro-100:#F0F2F5;
+  --cor-borda:#E4E8ED;
+  --cor-borda-forte:#CDD3DB;
+  --cor-escuro:#111624;
+
+  /* semânticas */
+  --cor-sucesso:#16A300;
+  --cor-sucesso-claro:#5CB85C;
+  --cor-sucesso-forte:#0F7A00;
+  --cor-sucesso-superficie:#EAF8E8;
+  --cor-sucesso-texto:var(--cor-sucesso-forte);
+
+  --cor-erro:#F76556;
+  --cor-erro-forte:#C93B28;
+  --cor-erro-superficie:#FEEDEB;
+  --cor-erro-texto:var(--cor-erro-forte);
+
+  --cor-atencao:#C98A00;
+  --cor-atencao-superficie:#FFF6E5;
+  --cor-atencao-texto:var(--cor-atencao);
+
+  /* texto */
+  --texto-forte:#14191E;
+  --texto-medio:#29343D;
+  --cor-corpo:#333333;
+  --texto-fraco:#3D4E5C;
+
+  /* forma */
+  --raio-botao:12px; --raio-card:20px; --raio-card-lg:24px; --raio-secao:32px;
+  --raio-icone:16px; --raio-sidebar-ativo:10px; --raio-full:999px;
+
+  /* elevação */
+  --sombra-1:0 1px 2px rgba(17,22,36,.05);
+  --sombra-2:0 8px 24px rgba(17,22,36,.08);
+  --sombra-3:0 24px 56px rgba(17,22,36,.14);
+
+  /* espaçamento */
+  --espaco-1:4px; --espaco-2:8px; --espaco-3:12px; --espaco-4:16px; --espaco-5:20px;
+  --espaco-6:24px; --espaco-8:32px; --espaco-10:40px; --espaco-14:56px; --espaco-18:72px;
+
+  /* movimento */
+  --dur-rapida:140ms; --dur-padrao:220ms; --dur-entrada:280ms;
+  --easing:cubic-bezier(.22,.02,0,1);
+
+  /* accent contextual — clínico (azul) por padrão, sobrescrito por .contexto-comercial */
+  --accent:var(--cor-primario); --accent-forte:var(--cor-primario-forte);
+  --accent-superficie:var(--cor-primario-superficie); --accent-texto:var(--cor-primario-texto);
+  --accent-ring:rgba(0,136,255,.35);
+
+  /* Sala Neutra — fixo, nunca muda com tema nem com marca */
+  --neutra-fundo:#3C3C3C;
+  --neutra-chrome-texto:#EDEDED;
+  --neutra-chrome-icone:#C4C4C4;
+  --neutra-guia:rgba(255,255,255,.3);
+  --neutra-slider:#8A8A8A;
+}
+.contexto-comercial{
+  --accent:var(--cor-suporte); --accent-forte:var(--cor-suporte-forte);
+  --accent-superficie:var(--cor-suporte-superficie); --accent-texto:var(--cor-suporte-texto);
+  --accent-ring:rgba(255,138,61,.35);
+}
+
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme: dark;
+    --cor-base:#171E2E; --cor-neutro-50:#111624; --cor-neutro-100:#1E2636;
+    --cor-borda:#2B3448; --cor-borda-forte:#3A4358;
+    --cor-primario-superficie:#12283D; --cor-suporte-superficie:#2E1D0E;
+    --cor-sucesso-superficie:#122A12; --cor-erro-superficie:#2E1712; --cor-atencao-superficie:#2A2210;
+    --cor-primario-texto:var(--cor-primario-claro);
+    --cor-sucesso-texto:var(--cor-sucesso-claro);
+    --cor-erro-texto:#FF9186; --cor-suporte-texto:#FFAD70; --cor-atencao-texto:#F0B93D;
+    --texto-forte:#F3F5F7; --texto-medio:#C7CDD6; --cor-corpo:#D7DBE0; --texto-fraco:#8B95A3;
+    --sombra-1:0 1px 2px rgba(0,0,0,.3); --sombra-2:0 10px 28px rgba(0,0,0,.4); --sombra-3:0 28px 64px rgba(0,0,0,.55);
+    --cor-pagina:#111624;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme: dark;
+  --cor-base:#171E2E; --cor-neutro-50:#111624; --cor-neutro-100:#1E2636;
+  --cor-borda:#2B3448; --cor-borda-forte:#3A4358;
+  --cor-primario-superficie:#12283D; --cor-suporte-superficie:#2E1D0E;
+  --cor-sucesso-superficie:#122A12; --cor-erro-superficie:#2E1712; --cor-atencao-superficie:#2A2210;
+  --cor-primario-texto:var(--cor-primario-claro);
+  --cor-sucesso-texto:var(--cor-sucesso-claro);
+  --cor-erro-texto:#FF9186; --cor-suporte-texto:#FFAD70; --cor-atencao-texto:#F0B93D;
+  --texto-forte:#F3F5F7; --texto-medio:#C7CDD6; --cor-corpo:#D7DBE0; --texto-fraco:#8B95A3;
+  --sombra-1:0 1px 2px rgba(0,0,0,.3); --sombra-2:0 10px 28px rgba(0,0,0,.4); --sombra-3:0 28px 64px rgba(0,0,0,.55);
+  --cor-pagina:#111624;
+}
+:root{ --cor-pagina:var(--cor-neutro-50); }
+
+/* ============================================================
+   RESET E BASE
+   ============================================================ */
+*,*::before,*::after{ box-sizing:border-box; }
+html{ scroll-behavior:smooth; scroll-padding-top:88px; }
+body{
+  margin:0; background:var(--cor-pagina); color:var(--cor-corpo);
+  font-family:'Inter',system-ui,sans-serif; font-size:16px; line-height:1.55;
+  -webkit-font-smoothing:antialiased;
+  transition:background var(--dur-padrao) var(--easing), color var(--dur-padrao) var(--easing);
+}
+img{ max-width:100%; }
+h1,h2,h3,h4{ margin:0; font-weight:500; }
+p{ margin:0; }
+ul{ margin:0; padding:0; list-style:none; }
+button{ font-family:inherit; }
+a{ color:var(--cor-primario-texto); text-decoration:underline; text-underline-offset:2px; }
+code{ font-family:'Inter',monospace; background:var(--cor-neutro-100); padding:1px 6px; border-radius:6px; font-size:.9em; }
+::selection{ background:var(--cor-primario-superficie); }
+
+.visually-hidden{ position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
+.skip-link{ position:absolute; left:12px; top:-48px; z-index:200; background:var(--cor-primario-forte); color:#fff; padding:10px 16px; border-radius:var(--raio-botao); transition:top var(--dur-padrao) var(--easing); text-decoration:none; }
+.skip-link:focus{ top:12px; }
+:focus-visible{ outline:3px solid var(--accent-ring); outline-offset:2px; border-radius:6px; }
+
+/* Tipografia */
+.t-h1{ font-weight:500; font-size:56px; line-height:1.05; letter-spacing:-.01em; color:var(--texto-forte); }
+.t-h2{ font-weight:500; font-size:32px; line-height:1.12; color:var(--texto-forte); }
+.t-h3{ font-weight:500; font-size:22px; line-height:1.2; color:var(--texto-forte); }
+.t-titulo{ font-weight:500; font-size:17px; line-height:1.3; color:var(--texto-forte); }
+.t-subtitulo{ font-weight:500; font-size:15px; line-height:1.4; color:var(--texto-medio); }
+.t-corpo{ font-weight:400; font-size:16px; line-height:1.55; color:var(--cor-corpo); }
+.t-corpo-forte{ font-weight:500; font-size:16px; line-height:1.55; color:var(--texto-forte); }
+.t-pequeno{ font-size:14px; line-height:1.5; color:var(--cor-corpo); }
+.t-legenda{ font-size:14px; line-height:1.4; color:var(--texto-fraco); }
+.t-rotulo{ font-weight:600; font-size:11px; line-height:1.3; letter-spacing:.06em; text-transform:uppercase; color:var(--texto-fraco); }
+.t-dado{ font-weight:500; font-size:14px; line-height:1.4; font-variant-numeric:tabular-nums; color:var(--texto-medio); }
+.t-dado-forte{ font-weight:600; font-size:15px; line-height:1.4; font-variant-numeric:tabular-nums; color:var(--texto-forte); }
+
+/* ============================================================
+   LAYOUT DO DOCUMENTO
+   ============================================================ */
+.topbar-doc{
+  position:sticky; top:0; z-index:100; display:flex; align-items:center; justify-content:space-between;
+  padding:14px var(--espaco-6); background:color-mix(in srgb, var(--cor-pagina) 90%, transparent);
+  backdrop-filter:blur(10px); border-bottom:1px solid var(--cor-borda);
+}
+.marca-doc{ display:flex; align-items:center; gap:10px; }
+.selo{ width:32px; height:32px; border-radius:10px; background:var(--cor-primario); flex:none; display:flex; align-items:center; justify-content:center; }
+.marca-doc .nome{ font-weight:500; font-size:18px; color:var(--texto-forte); }
+.marca-doc .tag{ font-size:11px; color:var(--texto-fraco); letter-spacing:.04em; text-transform:uppercase; margin-left:4px; }
+
+.tema-toggle{
+  display:inline-flex; align-items:center; gap:8px; padding:9px 16px; border-radius:var(--raio-full);
+  border:1px solid var(--cor-borda-forte); background:var(--cor-base); color:var(--texto-medio);
+  cursor:pointer; font-size:13px; font-weight:500; transition:border-color var(--dur-rapida) var(--easing);
+}
+.tema-toggle:hover{ border-color:var(--cor-primario); }
+
+.layout{ display:grid; grid-template-columns:240px 1fr; gap:var(--espaco-8); max-width:1360px; margin:0 auto; padding:var(--espaco-8) var(--espaco-6) var(--espaco-18); align-items:start; }
+.nav-doc{ position:sticky; top:88px; max-height:calc(100vh - 110px); overflow-y:auto; padding-right:var(--espaco-2); }
+.nav-doc .grupo{ margin-bottom:var(--espaco-5); }
+.nav-doc .grupo-titulo{ display:block; margin-bottom:var(--espaco-2); }
+.nav-doc a{ display:block; padding:6px 10px; border-radius:var(--raio-botao); color:var(--texto-fraco); text-decoration:none; font-size:13px; }
+.nav-doc a:hover{ background:var(--cor-neutro-100); color:var(--texto-forte); }
+
+.conteudo{ display:flex; flex-direction:column; gap:var(--espaco-18); min-width:0; }
+.intro{ max-width:680px; }
+.intro .kicker{ display:block; margin-bottom:var(--espaco-3); }
+.intro p{ margin-top:var(--espaco-4); color:var(--texto-fraco); }
+.intro p + p{ margin-top:var(--espaco-3); }
+
+section.bloco{ scroll-margin-top:88px; }
+.bloco-cabecalho{ display:flex; align-items:baseline; justify-content:space-between; gap:var(--espaco-4); margin-bottom:var(--espaco-6); flex-wrap:wrap; }
+.bloco-cabecalho .nota{ color:var(--texto-fraco); font-size:14px; max-width:460px; }
+
+.vitrine{ background:var(--cor-base); border:1px solid var(--cor-borda); border-radius:var(--raio-card-lg); padding:var(--espaco-6); box-shadow:var(--sombra-1); }
+.vitrine + .vitrine{ margin-top:var(--espaco-5); }
+.vitrine-titulo{ margin-bottom:var(--espaco-5); }
+.linha{ display:flex; flex-wrap:wrap; gap:var(--espaco-4); align-items:flex-start; }
+.linha.align-center{ align-items:center; }
+
+@media (max-width:900px){
+  .layout{ grid-template-columns:1fr; }
+  .nav-doc{ position:static; max-height:none; display:flex; flex-wrap:wrap; gap:var(--espaco-2); }
+  .nav-doc .grupo{ display:contents; }
+  .nav-doc .grupo-titulo{ display:none; }
+}
+
+/* ============================================================
+   FUNDAMENTOS
+   ============================================================ */
+.grade-paleta{ display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:var(--espaco-4); }
+.swatch{ border-radius:var(--raio-card); overflow:hidden; border:1px solid var(--cor-borda); }
+.swatch-cor{ height:64px; }
+.swatch-info{ padding:var(--espaco-3); background:var(--cor-base); }
+.swatch-info .nome{ font-weight:500; font-size:13px; color:var(--texto-forte); }
+.swatch-info .hex{ font-size:12px; color:var(--texto-fraco); display:block; margin-top:2px; font-variant-numeric:tabular-nums; }
+.swatch-info .uso{ font-size:12px; color:var(--texto-fraco); display:block; margin-top:4px; }
+.swatch-info .origem{ display:inline-block; margin-top:6px; font-size:10px; font-weight:600; letter-spacing:.04em; text-transform:uppercase; padding:2px 7px; border-radius:var(--raio-full); }
+.origem.extraido{ background:var(--cor-sucesso-superficie); color:var(--cor-sucesso-texto); }
+.origem.derivado{ background:var(--cor-atencao-superficie); color:var(--cor-atencao-texto); }
+
+.escala-tipo{ display:flex; flex-direction:column; gap:var(--espaco-5); }
+.escala-tipo .item{ display:flex; align-items:baseline; gap:var(--espaco-5); border-bottom:1px solid var(--cor-borda); padding-bottom:var(--espaco-4); }
+.escala-tipo .item .rotulo{ width:190px; flex:none; }
+.escala-tipo .item .rotulo .token{ display:block; font-family:monospace; font-size:11px; color:var(--texto-fraco); margin-top:2px; }
+
+.escala-espaco .barra-linha{ display:flex; align-items:center; gap:var(--espaco-4); margin-bottom:var(--espaco-3); }
+.escala-espaco .barra-linha .token{ width:120px; font-size:12px; flex:none; font-family:monospace; }
+.escala-espaco .barra{ height:14px; background:var(--cor-primario); border-radius:4px; }
+.escala-espaco .valor{ font-size:12px; color:var(--texto-fraco); font-variant-numeric:tabular-nums; }
+
+.grade-raios{ display:flex; gap:var(--espaco-5); flex-wrap:wrap; }
+.raio-demo{ width:104px; height:104px; background:var(--cor-primario-superficie); border:1.5px solid var(--cor-primario); display:flex; align-items:center; justify-content:center; font-size:12px; color:var(--cor-primario-texto); font-weight:500; }
+
+.grade-sombras{ display:flex; gap:var(--espaco-5); flex-wrap:wrap; }
+.sombra-demo{ width:150px; height:100px; background:var(--cor-base); border-radius:var(--raio-card); display:flex; align-items:center; justify-content:center; font-size:12px; color:var(--texto-fraco); border:1px solid var(--cor-borda); }
+
+.motion-demo-area{ display:flex; align-items:center; gap:var(--espaco-6); }
+.pulso-guia{ width:64px; height:64px; border-radius:var(--raio-full); border:2px dashed var(--cor-primario); animation:pulsar 1.6s ease-in-out infinite; }
+@keyframes pulsar{ 0%,100%{ opacity:1; } 50%{ opacity:.55; } }
+@media (prefers-reduced-motion: reduce){
+  .pulso-guia{ animation:none; opacity:1; border-style:solid; }
+  *{ transition-duration:1ms !important; animation-duration:1ms !important; }
+}
+
+.contraste-tabela{ width:100%; border-collapse:collapse; font-size:13px; }
+.contraste-tabela th,.contraste-tabela td{ text-align:left; padding:8px 10px; border-bottom:1px solid var(--cor-borda); }
+.contraste-tabela th{ font-weight:500; color:var(--texto-fraco); font-size:12px; }
+.chip-contraste{ display:inline-flex; align-items:center; gap:8px; }
+.chip-contraste .amostra{ width:18px; height:18px; border-radius:6px; border:1px solid var(--cor-borda); }
+
+/* ============================================================
+   ÍCONES / SELO
+   ============================================================ */
+.icone-quadrado{ width:44px; height:44px; border-radius:var(--raio-icone); display:flex; align-items:center; justify-content:center; flex:none; }
+.icone-quadrado.primario{ background:var(--cor-primario-superficie); color:var(--cor-primario-texto); }
+.icone-quadrado.suporte{ background:var(--cor-suporte-superficie); color:var(--cor-suporte-texto); }
+.icone-quadrado.solido{ background:var(--cor-primario); color:#fff; }
+
+/* ============================================================
+   COMPONENTES
+   ============================================================ */
+
+/* Botão */
+.botao{
+  display:inline-flex; align-items:center; justify-content:center; gap:8px; height:44px; padding:0 20px;
+  border-radius:var(--raio-botao); font-weight:500; font-size:15px; border:1.5px solid transparent; cursor:pointer;
+  background:var(--accent-forte); color:#fff;
+  transition:background var(--dur-rapida) var(--easing), border-color var(--dur-rapida) var(--easing), transform var(--dur-rapida) var(--easing);
+}
+.botao:hover{ background:color-mix(in srgb, var(--accent-forte) 85%, black); }
+.botao:active{ transform:translateY(1px); }
+.botao:disabled{ opacity:.45; cursor:not-allowed; }
+.botao.secundario{ background:transparent; color:var(--accent-texto); border-color:var(--accent); }
+.botao.secundario:hover{ background:var(--accent-superficie); }
+.botao.terciario{ background:transparent; color:var(--accent-texto); padding:0 8px; height:auto; }
+.botao.terciario:hover{ text-decoration:underline; }
+.botao.neutro{ background:var(--texto-forte); color:var(--cor-base); }
+.botao.neutro.secundario{ background:transparent; color:var(--texto-forte); border-color:var(--cor-borda-forte); }
+.botao.neutro.secundario:hover{ background:var(--cor-neutro-100); }
+.botao.pequeno{ height:36px; padding:0 14px; font-size:13px; }
+.botao .spinner{ width:14px; height:14px; border-radius:50%; border:2px solid rgba(255,255,255,.4); border-top-color:#fff; animation:girar .7s linear infinite; }
+@keyframes girar{ to{ transform:rotate(360deg); } }
+
+/* Campo de formulário */
+.campo{ display:flex; flex-direction:column; gap:6px; width:100%; max-width:320px; }
+.campo label{ font-size:14px; font-weight:500; color:var(--texto-medio); }
+.campo .ajuda{ font-size:13px; color:var(--texto-fraco); }
+.campo .erro-msg{ font-size:13px; color:var(--cor-erro-texto); font-weight:500; display:flex; align-items:center; gap:6px; }
+.campo input[type="text"],.campo input[type="date"],.campo input[type="tel"],.campo select{
+  height:44px; padding:0 14px; border-radius:var(--raio-botao); border:1.5px solid var(--cor-borda-forte);
+  background:var(--cor-base); color:var(--texto-forte); font-size:15px; font-family:inherit;
+  transition:border-color var(--dur-rapida) var(--easing), box-shadow var(--dur-rapida) var(--easing);
+}
+.campo input:focus,.campo select:focus{ border-color:var(--cor-primario); box-shadow:0 0 0 3px var(--cor-primario-superficie); }
+.campo.com-erro input{ border-color:var(--cor-erro); padding-right:38px; }
+.campo-icone-erro{ position:relative; }
+.campo-icone-erro svg{ position:absolute; right:13px; top:14px; color:var(--cor-erro-texto); }
+
+.select-wrap{ position:relative; }
+.select-wrap select{ width:100%; appearance:none; padding-right:36px; }
+.select-wrap::after{ content:""; position:absolute; right:15px; top:19px; width:8px; height:8px; border-right:1.5px solid var(--texto-fraco); border-bottom:1.5px solid var(--texto-fraco); transform:rotate(45deg); pointer-events:none; }
+
+.dropzone{ border:1.5px dashed var(--cor-borda-forte); border-radius:var(--raio-card); padding:var(--espaco-6); text-align:center; color:var(--texto-fraco); background:var(--cor-neutro-50); max-width:420px; }
+.dropzone strong{ color:var(--texto-forte); display:block; margin-bottom:4px; font-weight:500; }
+.dropzone .formatos{ font-size:12px; margin-top:8px; color:var(--texto-fraco); }
+
+/* Tabela densa */
+.tabela-wrap{ overflow-x:auto; border:1px solid var(--cor-borda); border-radius:var(--raio-card); }
+table.densa{ width:100%; border-collapse:collapse; min-width:640px; }
+table.densa thead th{ text-align:left; padding:10px 14px; background:var(--cor-neutro-50); border-bottom:1px solid var(--cor-borda); white-space:nowrap; font-size:12px; font-weight:600; color:var(--texto-fraco); text-transform:uppercase; letter-spacing:.04em; }
+table.densa td{ padding:10px 14px; border-bottom:1px solid var(--cor-borda); font-size:14px; height:40px; }
+table.densa tbody tr:hover{ background:var(--cor-primario-superficie); }
+table.densa td.num{ font-variant-numeric:tabular-nums; text-align:right; }
+table.densa td.acoes{ text-align:right; white-space:nowrap; }
+.icon-btn{ width:32px; height:32px; border-radius:var(--raio-botao); border:1px solid transparent; background:transparent; color:var(--texto-fraco); display:inline-flex; align-items:center; justify-content:center; cursor:pointer; }
+.icon-btn:hover{ background:var(--cor-neutro-100); color:var(--texto-forte); }
+
+/* Pill / badge de status */
+.pill{ display:inline-flex; align-items:center; gap:7px; padding:5px 12px 5px 8px; border-radius:var(--raio-full); font-size:13px; font-weight:500; background:var(--cor-base); border:1px solid var(--cor-borda); white-space:nowrap; }
+.pill .ponto{ width:8px; height:8px; border-radius:50%; flex:none; }
+.pill.sucesso{ color:var(--cor-sucesso-texto); }
+.pill.sucesso .ponto{ background:var(--cor-sucesso); }
+.pill.erro{ color:var(--cor-erro-texto); }
+.pill.erro .ponto{ background:var(--cor-erro); }
+.pill.atencao{ color:var(--cor-atencao-texto); }
+.pill.atencao .ponto{ background:var(--cor-atencao); }
+.pill.primario{ color:var(--cor-primario-texto); }
+.pill.primario .ponto{ background:var(--cor-primario); }
+.pill.suporte{ color:var(--cor-suporte-texto); }
+.pill.suporte .ponto{ background:var(--cor-suporte); }
+.pill.neutro{ color:var(--texto-fraco); }
+.pill.neutro .ponto{ background:var(--texto-fraco); }
+.pill.tonal{ border-color:transparent; }
+.pill.sucesso.tonal{ background:var(--cor-sucesso-superficie); }
+.pill.erro.tonal{ background:var(--cor-erro-superficie); }
+.pill.atencao.tonal{ background:var(--cor-atencao-superficie); }
+.pill.primario.tonal{ background:var(--cor-primario-superficie); }
+.pill.suporte.tonal{ background:var(--cor-suporte-superficie); }
+
+/* Avatar */
+.avatar{ border-radius:50%; display:inline-flex; align-items:center; justify-content:center; background:var(--cor-primario-superficie); color:var(--cor-primario-texto); font-weight:600; flex:none; overflow:hidden; }
+.avatar.tam-24{ width:24px; height:24px; font-size:10px; }
+.avatar.tam-32{ width:32px; height:32px; font-size:12px; }
+.avatar.tam-40{ width:40px; height:40px; font-size:14px; }
+.avatar.foto{ background-size:cover; background-position:center; }
+
+/* Card de paciente */
+.card-paciente{ background:var(--cor-base); border:1px solid var(--cor-borda); border-radius:var(--raio-card-lg); padding:var(--espaco-6); box-shadow:var(--sombra-1); max-width:560px; }
+.card-paciente .topo{ display:flex; gap:var(--espaco-5); align-items:flex-start; }
+.card-paciente .foto-paciente{ width:64px; height:64px; border-radius:50%; flex:none; background:radial-gradient(circle at 35% 30%, #E7C9A3, #C98D5E 70%); border:2px solid var(--cor-base); box-shadow:0 0 0 1px var(--cor-borda); }
+.card-paciente .nome{ margin-bottom:2px; }
+.card-paciente .chips{ display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; }
+.regua-progresso{ display:flex; height:8px; border-radius:var(--raio-full); overflow:hidden; margin-top:var(--espaco-5); background:var(--cor-neutro-100); }
+.regua-progresso .segmento.clinico{ background:var(--cor-primario); }
+.regua-progresso .segmento.comercial{ background:var(--cor-suporte); }
+.regua-legenda{ display:flex; justify-content:space-between; margin-top:8px; font-size:12px; flex-wrap:wrap; gap:8px; }
+.regua-legenda .item{ display:flex; align-items:center; gap:6px; color:var(--texto-fraco); }
+.regua-legenda .ponto{ width:8px; height:8px; border-radius:50%; }
+
+/* Linha do tempo */
+.timeline{ position:relative; padding-left:28px; }
+.timeline::before{ content:""; position:absolute; left:8px; top:6px; bottom:6px; width:1.5px; background:var(--cor-borda); }
+.timeline .evento{ position:relative; padding-bottom:var(--espaco-6); }
+.timeline .evento:last-child{ padding-bottom:0; }
+.timeline .no{ position:absolute; left:-28px; top:2px; width:17px; height:17px; border-radius:50%; background:var(--cor-base); border:2.5px solid var(--cor-primario); }
+.timeline .no.realizado{ background:var(--cor-primario); }
+.timeline .no.faltou{ border-color:var(--cor-erro); background:var(--cor-erro-superficie); }
+.timeline .no.planejado{ border-style:dashed; border-color:var(--cor-borda-forte); }
+.timeline .cabecalho-evento{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+.timeline .meta{ margin-top:3px; color:var(--texto-fraco); font-size:13px; }
+
+/* Modal */
+.overlay{ position:fixed; inset:0; background:rgba(17,22,36,.5); display:none; align-items:center; justify-content:center; z-index:300; padding:var(--espaco-5); }
+.overlay.aberto{ display:flex; }
+.modal{ background:var(--cor-base); border-radius:var(--raio-card-lg); box-shadow:var(--sombra-3); width:100%; max-width:440px; padding:var(--espaco-6); animation:entrar-modal var(--dur-entrada) var(--easing); }
+@keyframes entrar-modal{ from{ opacity:0; transform:translateY(8px) scale(.98);} to{ opacity:1; transform:none; } }
+.modal-cabecalho{ display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:var(--espaco-4); gap:var(--espaco-3); }
+.modal-rodape{ display:flex; justify-content:flex-end; gap:10px; margin-top:var(--espaco-6); }
+.fechar-btn{ width:44px; height:44px; margin:-12px -12px 0 0; border:none; background:transparent; color:var(--texto-fraco); border-radius:var(--raio-botao); cursor:pointer; display:flex; align-items:center; justify-content:center; }
+.fechar-btn:hover{ background:var(--cor-neutro-100); color:var(--texto-forte); }
+
+/* Drawer */
+.drawer{ position:fixed; top:0; right:0; height:100%; width:min(480px,100%); background:var(--cor-base); box-shadow:var(--sombra-3); z-index:301; transform:translateX(100%); transition:transform var(--dur-entrada) var(--easing); padding:var(--espaco-6); overflow-y:auto; }
+.drawer.aberto{ transform:translateX(0); }
+.drawer-overlay{ position:fixed; inset:0; background:rgba(17,22,36,.5); z-index:300; display:none; }
+.drawer-overlay.aberto{ display:block; }
+
+/* Toast */
+.toast-area{ position:fixed; bottom:24px; right:24px; z-index:400; display:flex; flex-direction:column; gap:10px; }
+.toast{ display:flex; align-items:center; gap:10px; background:var(--texto-forte); color:var(--cor-base); padding:12px 18px; border-radius:var(--raio-botao); box-shadow:var(--sombra-3); font-size:14px; font-weight:500; animation:entrar-toast var(--dur-entrada) var(--easing); max-width:340px; }
+.toast.sucesso{ background:var(--cor-sucesso-forte); color:#fff; }
+.toast.alerta{ background:var(--cor-erro-forte); color:#fff; }
+@keyframes entrar-toast{ from{ opacity:0; transform:translateX(16px); } to{ opacity:1; transform:none; } }
+
+/* Tabs */
+.tabs-lista{ display:flex; gap:var(--espaco-5); border-bottom:1px solid var(--cor-borda); }
+.tab-btn{ background:none; border:none; padding:10px 2px; font-size:15px; font-weight:500; color:var(--texto-fraco); cursor:pointer; position:relative; top:1px; border-bottom:2px solid transparent; }
+.tab-btn.ativo{ color:var(--texto-forte); border-color:var(--accent); }
+.tab-painel{ padding-top:var(--espaco-5); display:none; }
+.tab-painel.ativo{ display:block; }
+
+/* Empty state */
+.empty-state{ text-align:center; padding:var(--espaco-18) var(--espaco-6); max-width:360px; margin:0 auto; }
+.empty-state svg{ color:var(--texto-fraco); margin-bottom:var(--espaco-4); }
+.empty-state p{ color:var(--texto-fraco); margin-top:8px; margin-bottom:var(--espaco-5); }
+
+/* Skeleton */
+.skeleton{ background:var(--cor-neutro-100); border-radius:var(--raio-botao); animation:pulsar-sk calc(var(--dur-padrao) * 6) ease-in-out infinite; }
+@keyframes pulsar-sk{ 0%,100%{ opacity:1; } 50%{ opacity:.5; } }
+
+/* Paginação */
+.paginacao{ display:flex; align-items:center; gap:6px; }
+.pagina-btn{ min-width:34px; height:34px; padding:0 8px; border-radius:var(--raio-botao); border:1px solid transparent; background:transparent; color:var(--texto-fraco); font-size:13px; font-variant-numeric:tabular-nums; cursor:pointer; }
+.pagina-btn:hover{ background:var(--cor-neutro-100); }
+.pagina-btn.ativo{ background:var(--cor-primario-forte); color:#fff; font-weight:500; }
+.pagina-btn:disabled{ opacity:.4; cursor:not-allowed; }
+
+/* ============================================================
+   SIDEBAR / TOPBAR / TELAS DE PRODUTO
+   ============================================================ */
+.tela-produto{ border:1px solid var(--cor-borda); border-radius:var(--raio-card-lg); box-shadow:var(--sombra-2); overflow:hidden; background:var(--cor-base); display:grid; grid-template-columns:56px 1fr; grid-template-rows:60px 1fr; height:640px; }
+.tp-sidebar{ grid-row:1 / 3; background:var(--cor-base); border-right:1px solid var(--cor-borda); display:flex; flex-direction:column; align-items:center; padding:16px 0; gap:8px; }
+.tp-sidebar .selo{ margin-bottom:12px; }
+.tp-icone{ width:40px; height:40px; border-radius:var(--raio-sidebar-ativo); display:flex; align-items:center; justify-content:center; color:var(--texto-fraco); cursor:pointer; }
+.tp-icone:hover{ color:var(--texto-forte); background:var(--cor-neutro-100); }
+.tp-icone.ativo{ color:var(--cor-primario-texto); background:var(--cor-primario-superficie); }
+.tp-topbar{ grid-column:2; display:flex; align-items:center; justify-content:space-between; padding:0 var(--espaco-5); border-bottom:1px solid var(--cor-borda); gap:var(--espaco-5); }
+.tp-busca{ display:flex; align-items:center; gap:8px; background:var(--cor-neutro-100); border-radius:var(--raio-botao); padding:0 14px; height:38px; flex:1; max-width:340px; color:var(--texto-fraco); }
+.tp-busca input{ border:none; background:transparent; outline:none; font-size:14px; color:var(--texto-forte); width:100%; font-family:inherit; }
+.tp-busca input::placeholder{ color:var(--texto-fraco); }
+.tp-menus{ display:flex; gap:var(--espaco-5); font-size:14px; color:var(--texto-medio); font-weight:500; }
+.tp-menus span{ display:flex; align-items:center; gap:4px; cursor:pointer; }
+.tp-acoes{ display:flex; align-items:center; gap:14px; }
+.tp-icone-topo{ color:var(--texto-fraco); cursor:pointer; position:relative; }
+.tp-icone-topo:hover{ color:var(--texto-forte); }
+.tp-icone-topo .ponto-notif{ position:absolute; top:-2px; right:-2px; width:8px; height:8px; border-radius:50%; background:var(--cor-erro); border:1.5px solid var(--cor-base); }
+.tp-conteudo{ grid-column:2; background:var(--cor-neutro-50); overflow-y:auto; padding:var(--espaco-6); }
+
+/* Agenda em colunas */
+.agenda-colunas{ display:grid; grid-template-columns:repeat(3, minmax(200px,1fr)); gap:var(--espaco-4); }
+.coluna-profissional{ display:flex; flex-direction:column; gap:var(--espaco-3); }
+.cab-profissional{ background:var(--cor-base); border-radius:var(--raio-card); padding:var(--espaco-3); text-align:center; border:1px solid var(--cor-borda); }
+.cab-profissional .avatar{ margin:0 auto 8px; }
+.cab-profissional .barra-cor{ height:3px; border-radius:var(--raio-full); margin-top:10px; }
+.cab-profissional .nome-prof{ font-size:13px; font-weight:500; color:var(--texto-forte); }
+
+.card-agendamento{ border-radius:var(--raio-card); padding:12px 14px; border-left:3px solid var(--cor-primario); background:var(--cor-primario-superficie); display:flex; flex-direction:column; gap:4px; }
+.card-agendamento .paciente{ font-size:14px; font-weight:500; color:var(--texto-forte); }
+.card-agendamento .meta{ font-size:12px; color:var(--texto-fraco); }
+.card-agendamento .chip-tipo{ align-self:flex-start; margin-top:4px; font-size:11px; font-weight:500; padding:3px 9px; border-radius:var(--raio-full); background:var(--cor-base); color:var(--cor-primario-texto); border:1px solid var(--cor-borda); }
+.card-agendamento.sucesso{ border-left-color:var(--cor-sucesso); background:var(--cor-sucesso-superficie); }
+.card-agendamento.sucesso .chip-tipo{ color:var(--cor-sucesso-texto); }
+.card-agendamento.erro{ border-left-color:var(--cor-erro); background:var(--cor-erro-superficie); }
+.card-agendamento.erro .chip-tipo{ color:var(--cor-erro-texto); }
+.card-agendamento.atencao{ border-left-color:var(--cor-atencao); background:var(--cor-atencao-superficie); }
+.card-agendamento.atencao .chip-tipo{ color:var(--cor-atencao-texto); }
+.card-agendamento.vazio{ border:1.5px dashed var(--cor-borda-forte); background:transparent; align-items:center; justify-content:center; min-height:56px; color:var(--texto-fraco); font-size:12px; }
+.slot-hora{ font-size:11px; color:var(--texto-fraco); font-weight:600; text-transform:uppercase; letter-spacing:.04em; margin-top:6px; }
+
+/* Card de IA flutuante */
+.card-ia{ background:var(--cor-base); border-radius:var(--raio-card-lg); box-shadow:var(--sombra-2); padding:var(--espaco-5); max-width:320px; }
+.card-ia .cabecalho-ia{ display:flex; gap:12px; align-items:flex-start; }
+.card-ia .tags{ display:flex; gap:6px; margin-top:var(--espaco-4); flex-wrap:wrap; }
+.card-ia .tag{ font-size:12px; padding:4px 10px; border-radius:var(--raio-full); border:1px solid var(--cor-borda); color:var(--texto-fraco); }
+
+/* Sala Neutra */
+.sala-neutra{ background:var(--neutra-fundo); border-radius:var(--raio-card-lg); padding:var(--espaco-5); max-width:560px; }
+.sala-neutra .chrome-topo{ display:flex; justify-content:space-between; align-items:center; color:var(--neutra-chrome-texto); font-size:12px; margin-bottom:12px; }
+.sala-neutra .chrome-topo .icone{ color:var(--neutra-chrome-icone); }
+.comparador{ position:relative; height:280px; border-radius:var(--raio-card); overflow:hidden; }
+.comparador .camada{ position:absolute; inset:0; }
+.comparador .antes{ background:linear-gradient(160deg,#8a7360,#5b4a3c); }
+.comparador .depois{ background:linear-gradient(160deg,#c9a37c,#8a6a4c); clip-path:inset(0 0 0 var(--corte,50%)); }
+.comparador .rotulo{ position:absolute; top:10px; font-size:11px; color:#fff; background:rgba(0,0,0,.35); padding:3px 9px; border-radius:var(--raio-full); }
+.comparador .rotulo.antes-r{ left:10px; }
+.comparador .rotulo.depois-r{ right:10px; }
+.comparador .guia-pose{ position:absolute; inset:14%; border:1.5px solid var(--neutra-guia); border-radius:50% 50% 44% 44%; }
+.slider-linha{ position:absolute; top:0; bottom:0; left:var(--corte,50%); width:2px; background:var(--neutra-slider); }
+.sala-neutra input[type=range]{ width:100%; margin-top:14px; accent-color:var(--neutra-slider); }
+.sala-neutra .meta-fotos{ display:flex; justify-content:space-between; margin-top:10px; font-size:11px; color:var(--neutra-chrome-icone); }
+
+/* Gráfico */
+.grafico-card{ background:var(--cor-base); border:1px solid var(--cor-borda); border-radius:var(--raio-card-lg); padding:var(--espaco-6); max-width:680px; }
+.grafico-cabecalho{ display:flex; justify-content:space-between; align-items:baseline; margin-bottom:var(--espaco-4); flex-wrap:wrap; gap:8px; }
+
+/* Mapa facial */
+.mapa-card{ display:flex; gap:var(--espaco-6); flex-wrap:wrap; align-items:flex-start; }
+.mapa-svg-wrap{ position:relative; flex:none; }
+.marcador{ position:absolute; width:22px; height:22px; border-radius:50%; background:var(--cor-primario); color:#fff; border:2px solid var(--cor-base); font-size:11px; font-weight:600; display:flex; align-items:center; justify-content:center; cursor:pointer; transform:translate(-50%,-50%); box-shadow:var(--sombra-1); }
+.marcador:hover, .marcador[aria-expanded="true"]{ background:var(--cor-primario-forte); }
+.popover-marcador{ position:absolute; z-index:50; background:var(--cor-base); border:1px solid var(--cor-borda); border-radius:var(--raio-card); box-shadow:var(--sombra-3); padding:var(--espaco-4); width:220px; display:none; }
+.popover-marcador.aberto{ display:block; }
+.popover-marcador dt{ font-size:11px; color:var(--texto-fraco); margin-top:8px; }
+.popover-marcador dt:first-child{ margin-top:0; }
+.popover-marcador dd{ margin:0; font-size:13px; font-variant-numeric:tabular-nums; color:var(--texto-forte); }
+.legenda-mapa{ flex:1; min-width:200px; display:flex; flex-direction:column; gap:10px; }
+.legenda-mapa .linha-legenda{ display:flex; justify-content:space-between; gap:10px; padding:10px 12px; border-radius:var(--raio-botao); background:var(--cor-neutro-50); font-size:14px; }
+
+@media (max-width:640px){
+  .escala-tipo .item{ flex-direction:column; gap:6px; }
+  .escala-tipo .item .rotulo{ width:auto; }
+  .mapa-card{ flex-direction:column; }
+  .tela-produto{ height:auto; }
+  .agenda-colunas{ grid-template-columns:1fr; }
+}
+
+</style>
+</head>
+<body>
+<a class="skip-link" href="#conteudo-principal">Pular para o conteúdo</a>
+
+<header class="topbar-doc">
+  <div class="marca-doc">
+    <span class="selo" aria-hidden="true">
+      <svg width="18" height="18" viewBox="0 0 32 32" fill="none"><path d="M6 16h5l2-6 4 12 3-6h6" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </span>
+    <span class="nome">Hello Doctor</span>
+    <span class="tag">Style Guide · rev. 2</span>
+  </div>
+  <button class="tema-toggle" id="botao-tema" aria-pressed="false">
+    <span id="icone-tema" aria-hidden="true">☾</span>
+    <span id="texto-tema">Tema escuro</span>
+  </button>
+</header>
+
+<div class="layout">
+  <nav class="nav-doc" aria-label="Navegação do style guide">
+    <div class="grupo">
+      <span class="t-rotulo grupo-titulo">Fundamentos</span>
+      <a href="#paleta">Paleta</a>
+      <a href="#tipografia">Tipografia</a>
+      <a href="#espacamento">Espaçamento</a>
+      <a href="#forma">Forma &amp; elevação</a>
+      <a href="#movimento">Movimento</a>
+      <a href="#acessibilidade">Acessibilidade</a>
+      <a href="#sala-neutra-fund">Sala Neutra</a>
+    </div>
+    <div class="grupo">
+      <span class="t-rotulo grupo-titulo">Telas de produto</span>
+      <a href="#tela-agenda">Agenda semanal</a>
+      <a href="#tela-prontuario">Prontuário do paciente</a>
+    </div>
+    <div class="grupo">
+      <span class="t-rotulo grupo-titulo">Componentes</span>
+      <a href="#c-botao">Botão</a>
+      <a href="#c-formulario">Campo com erro</a>
+      <a href="#c-select">Select</a>
+      <a href="#c-data">Data</a>
+      <a href="#c-upload">Upload</a>
+      <a href="#c-tabela">Tabela densa</a>
+      <a href="#c-card-paciente">Card de paciente</a>
+      <a href="#c-timeline">Linha do tempo</a>
+      <a href="#c-badge">Badge / pill</a>
+      <a href="#c-avatar">Avatar</a>
+      <a href="#c-agendamento">Card de agendamento</a>
+      <a href="#c-ia">Card de IA</a>
+      <a href="#c-modal">Modal</a>
+      <a href="#c-drawer">Drawer</a>
+      <a href="#c-toast">Toast</a>
+      <a href="#c-tabs">Tabs</a>
+      <a href="#c-empty">Empty state</a>
+      <a href="#c-skeleton">Skeleton</a>
+      <a href="#c-paginacao">Paginação</a>
+      <a href="#c-comparador">Comparador de foto</a>
+      <a href="#c-grafico">Gráfico de evolução</a>
+      <a href="#c-mapa">Mapa facial</a>
+    </div>
+  </nav>
+
+  <main id="conteudo-principal" class="conteudo">
+
+    <div class="intro">
+      <span class="t-rotulo kicker">Sistema visual</span>
+      <h1 class="t-h2" style="font-size:36px">Linguagem Amigo Clinic, identidade Hello Doctor</h1>
+      <p class="t-corpo">Paleta, tipografia, forma e padrões de componente replicados com fidelidade do Amigo Clinic — a decisão declarada, não uma reinterpretação. O que muda é o nome, o selo e o domínio: nenhum logo, ilustração ou texto do concorrente entra aqui.</p>
+      <p class="t-corpo">Detalhamento e justificativa completos em <code>docs/design-system.md</code>.</p>
+    </div>
+
+    <!-- ================= PALETA ================= -->
+    <section class="bloco" id="paleta">
+      <div class="bloco-cabecalho">
+        <h2 class="t-h2">Paleta</h2>
+        <p class="nota">Selo verde = valor extraído direto do site. Selo âmbar = variante derivada só para garantir contraste AA em texto — o tom puro segue em ícone, borda e ponto.</p>
+      </div>
+      <div class="vitrine">
+        <div class="grade-paleta">
+          <div class="swatch"><div class="swatch-cor" style="background:#0088FF"></div><div class="swatch-info"><span class="nome">Primário</span><span class="hex">#0088FF</span><span class="uso">Ícone, borda, link, linha de gráfico</span><span class="origem extraido">Extraído</span></div></div>
+          <div class="swatch"><div class="swatch-cor" style="background:#4DACFF"></div><div class="swatch-info"><span class="nome">Primário claro</span><span class="hex">#4DACFF</span><span class="uso">Texto/ícone azul sobre fundo escuro</span><span class="origem extraido">Extraído</span></div></div>
+          <div class="swatch"><div class="swatch-cor" style="background:#0068B3"></div><div class="swatch-info"><span class="nome">Primário forte</span><span class="hex">#0068B3</span><span class="uso">Botão sólido, texto/link em fundo claro</span><span class="origem derivado">Derivado — AA</span></div></div>
+          <div class="swatch"><div class="swatch-cor" style="background:#F4F9FF"></div><div class="swatch-info"><span class="nome">Superfície primário</span><span class="hex">#F4F9FF</span><span class="uso">Fundo tonal azul suave</span><span class="origem extraido">Extraído</span></div></div>
+          <div class="swatch"><div class="swatch-cor" style="background:#FF8A3D"></div><div class="swatch-info"><span class="nome">Suporte (laranja)</span><span class="hex">#FF8A3D</span><span class="uso">Ícone/acento de contexto comercial</span><span class="origem derivado">Derivado</span></div></div>
+          <div class="swatch"><div class="swatch-cor" style="background:#C15F1E"></div><div class="swatch-info"><span class="nome">Suporte forte</span><span class="hex">#C15F1E</span><span class="uso">Texto sobre fundo claro</span><span class="origem derivado">Derivado — AA</span></div></div>
+          <div class="swatch"><div class="swatch-cor" style="background:#16A300"></div><div class="swatch-info"><span class="nome">Sucesso</span><span class="hex">#16A300</span><span class="uso">Ícone, ponto — confirmado, pago</span><span class="origem extraido">Extraído</span></div></div>
+          <div class="swatch"><div class="swatch-cor" style="background:#0F7A00"></div><div class="swatch-info"><span class="nome">Sucesso forte</span><span class="hex">#0F7A00</span><span class="uso">Texto sobre fundo claro</span><span class="origem derivado">Derivado — AA</span></div></div>
+          <div class="swatch"><div class="swatch-cor" style="background:#F76556"></div><div class="swatch-info"><span class="nome">Erro</span><span class="hex">#F76556</span><span class="uso">Ícone, ponto — vencido, faltou</span><span class="origem extraido">Extraído</span></div></div>
+          <div class="swatch"><div class="swatch-cor" style="background:#C93B28"></div><div class="swatch-info"><span class="nome">Erro forte</span><span class="hex">#C93B28</span><span class="uso">Texto sobre fundo claro</span><span class="origem derivado">Derivado — AA</span></div></div>
+          <div class="swatch"><div class="swatch-cor" style="background:#111624"></div><div class="swatch-info"><span class="nome" style="color:#F3F5F7">Escuro</span><span class="hex" style="color:#C7CDD6">#111624</span><span class="uso" style="color:#8B95A3">Base do tema escuro do produto</span><span class="origem extraido">Extraído</span></div></div>
+          <div class="swatch"><div class="swatch-cor" style="background:#3C3C3C"></div><div class="swatch-info"><span class="nome" style="color:#EDEDED">Sala Neutra</span><span class="hex" style="color:#C4C4C4">#3C3C3C</span><span class="uso" style="color:#9c9c9c">Avaliação de foto — fixo, fora da marca</span></div></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= TIPOGRAFIA ================= -->
+    <section class="bloco" id="tipografia">
+      <div class="bloco-cabecalho">
+        <h2 class="t-h2">Tipografia</h2>
+        <p class="nota">Família única — Inter. Títulos nunca em weight 700: no máximo 500. É a assinatura do visual — grande e leve, não grande e pesado.</p>
+      </div>
+      <div class="vitrine escala-tipo">
+        <div class="item"><div class="rotulo t-pequeno">H1 · 56/500<span class="token">--tipo-h1</span></div><div class="t-h1" style="font-size:44px">Sua clínica, um sistema só</div></div>
+        <div class="item"><div class="rotulo t-pequeno">H2 · 32/500<span class="token">--tipo-h2</span></div><div class="t-h2">Agenda de Beatriz Andrade Lemos</div></div>
+        <div class="item"><div class="rotulo t-pequeno">H3 · 22/500<span class="token">--tipo-h3</span></div><div class="t-h3">Protocolo de harmonização facial</div></div>
+        <div class="item"><div class="rotulo t-pequeno">Título · 17/500<span class="token">--tipo-titulo</span></div><div class="t-titulo">Toxina botulínica — glabela e região frontal</div></div>
+        <div class="item"><div class="rotulo t-pequeno">Corpo · 16/400<span class="token">--tipo-corpo</span></div><div class="t-corpo">Paciente relata edema leve na região malar direita, sem sinais de assimetria. Retorno agendado em 15 dias para avaliação de resultado.</div></div>
+        <div class="item"><div class="rotulo t-pequeno">Rótulo · 11/600<span class="token">--tipo-rotulo</span></div><div class="t-rotulo">Procedimento aplicado</div></div>
+        <div class="item"><div class="rotulo t-pequeno">Dado · 14/500 tabular<span class="token">--tipo-dado</span></div><div class="t-dado">Lote BTX-24891 · Val. 03/2027 · 24 UI</div></div>
+        <div class="item"><div class="rotulo t-pequeno">Dado forte · 15/600<span class="token">--tipo-dado-forte</span></div><div class="t-dado-forte">R$ 2.480,00</div></div>
+      </div>
+    </section>
+
+    <!-- ================= ESPAÇAMENTO ================= -->
+    <section class="bloco" id="espacamento">
+      <div class="bloco-cabecalho">
+        <h2 class="t-h2">Espaçamento</h2>
+        <p class="nota">Grid de 4px com valores generosos para marketing (até 96px) e uma faixa mais densa (16–32px) para a UI de trabalho do produto.</p>
+      </div>
+      <div class="vitrine escala-espaco">
+        <div class="barra-linha"><span class="token">--espaco-1</span><div class="barra" style="width:4px"></div><span class="valor">4px</span></div>
+        <div class="barra-linha"><span class="token">--espaco-2</span><div class="barra" style="width:8px"></div><span class="valor">8px</span></div>
+        <div class="barra-linha"><span class="token">--espaco-3</span><div class="barra" style="width:12px"></div><span class="valor">12px</span></div>
+        <div class="barra-linha"><span class="token">--espaco-4</span><div class="barra" style="width:16px"></div><span class="valor">16px</span></div>
+        <div class="barra-linha"><span class="token">--espaco-5</span><div class="barra" style="width:20px"></div><span class="valor">20px</span></div>
+        <div class="barra-linha"><span class="token">--espaco-6</span><div class="barra" style="width:24px"></div><span class="valor">24px</span></div>
+        <div class="barra-linha"><span class="token">--espaco-8</span><div class="barra" style="width:32px"></div><span class="valor">32px</span></div>
+        <div class="barra-linha"><span class="token">--espaco-10</span><div class="barra" style="width:40px"></div><span class="valor">40px</span></div>
+        <div class="barra-linha"><span class="token">--espaco-14</span><div class="barra" style="width:56px"></div><span class="valor">56px</span></div>
+        <div class="barra-linha"><span class="token">--espaco-18</span><div class="barra" style="width:72px"></div><span class="valor">72px</span></div>
+      </div>
+    </section>
+
+    <!-- ================= FORMA & ELEVAÇÃO ================= -->
+    <section class="bloco" id="forma">
+      <div class="bloco-cabecalho">
+        <h2 class="t-h2">Forma &amp; elevação</h2>
+        <p class="nota">Raio grande e macio é a assinatura — nunca zero, nunca anguloso. Elevação por sombra difusa + borda de 1px, nunca sombra dura sozinha.</p>
+      </div>
+      <div class="vitrine">
+        <h3 class="t-titulo vitrine-titulo">Raios</h3>
+        <div class="grade-raios">
+          <div class="raio-demo" style="border-radius:12px">botão · 12px</div>
+          <div class="raio-demo" style="border-radius:20px">card · 20px</div>
+          <div class="raio-demo" style="border-radius:24px">card-lg · 24px</div>
+          <div class="raio-demo" style="border-radius:32px">seção · 32px</div>
+          <div class="raio-demo" style="border-radius:999px">full</div>
+        </div>
+      </div>
+      <div class="vitrine">
+        <h3 class="t-titulo vitrine-titulo">Elevação</h3>
+        <div class="grade-sombras">
+          <div class="sombra-demo" style="box-shadow:var(--sombra-1)">sombra-1</div>
+          <div class="sombra-demo" style="box-shadow:var(--sombra-2)">sombra-2</div>
+          <div class="sombra-demo" style="box-shadow:var(--sombra-3)">sombra-3</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= MOVIMENTO ================= -->
+    <section class="bloco" id="movimento">
+      <div class="bloco-cabecalho">
+        <h2 class="t-h2">Movimento</h2>
+        <p class="nota">Discreto, nunca compete com o respiro visual. Único momento ambiente: o guia de enquadramento da captura de foto pulsa até alinhar com a pose anterior.</p>
+      </div>
+      <div class="vitrine motion-demo-area">
+        <div class="pulso-guia" aria-hidden="true"></div>
+        <div>
+          <p class="t-corpo-forte">Guia de enquadramento — captura de foto clínica</p>
+          <p class="t-pequeno">140ms hover/foco · 220ms padrão · 280ms entrada de modal/drawer/toast · <code>cubic-bezier(.22,.02,0,1)</code></p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= ACESSIBILIDADE ================= -->
+    <section class="bloco" id="acessibilidade">
+      <div class="bloco-cabecalho">
+        <h2 class="t-h2">Acessibilidade</h2>
+        <p class="nota">O tom puro do Amigo (#0088FF, #16A300, #F76556) não passa em texto normal sobre fundo claro — por isso a variante "-forte" existe. Ver tabela.</p>
+      </div>
+      <div class="vitrine">
+        <table class="contraste-tabela">
+          <thead><tr><th>Combinação</th><th>Contraste</th><th>Uso</th><th>Status</th></tr></thead>
+          <tbody>
+            <tr><td><span class="chip-contraste"><span class="amostra" style="background:#14191E"></span>Texto forte sobre base</span></td><td>17.9:1</td><td>Título, valor de destaque</td><td><span class="pill sucesso tonal"><span class="ponto"></span>AAA</span></td></tr>
+            <tr><td><span class="chip-contraste"><span class="amostra" style="background:#0068B3"></span>Primário forte</span></td><td>5.79:1</td><td>Botão sólido, link, texto de pill</td><td><span class="pill sucesso tonal"><span class="ponto"></span>AA</span></td></tr>
+            <tr><td><span class="chip-contraste"><span class="amostra" style="background:#0088FF"></span>Primário puro</span></td><td>3.52:1</td><td>Ícone, borda, ponto, linha de gráfico — regra de 3:1</td><td><span class="pill sucesso tonal"><span class="ponto"></span>AA · UI</span></td></tr>
+            <tr><td><span class="chip-contraste"><span class="amostra" style="background:#0F7A00"></span>Sucesso forte</span></td><td>5.52:1</td><td>Texto/preenchimento de pill positivo</td><td><span class="pill sucesso tonal"><span class="ponto"></span>AA</span></td></tr>
+            <tr><td><span class="chip-contraste"><span class="amostra" style="background:#C93B28"></span>Erro forte</span></td><td>5.07:1</td><td>Texto/preenchimento de pill de alerta</td><td><span class="pill sucesso tonal"><span class="ponto"></span>AA</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="vitrine">
+        <h3 class="t-titulo vitrine-titulo">Foco visível</h3>
+        <p class="t-pequeno" style="margin-bottom:12px">Use Tab para navegar até o botão — o anel usa a cor de acento do contexto (azul aqui, laranja em telas comerciais).</p>
+        <button class="botao">Testar foco por teclado</button>
+      </div>
+    </section>
+
+    <!-- ================= SALA NEUTRA ================= -->
+    <section class="bloco" id="sala-neutra-fund">
+      <div class="bloco-cabecalho">
+        <h2 class="t-h2">Sala Neutra</h2>
+        <p class="nota">A avaliação de foto clínica roda sobre cinza neutro fixo (#3C3C3C) — sem azul, sem laranja, em qualquer tema. Restrição funcional, não estética: cor saturada ao redor distorce a percepção de tom de pele. Demonstração em <a href="#c-comparador">Comparador de foto</a>.</p>
+      </div>
+    </section>
+
+    <!-- ================================================================
+         TELAS DE PRODUTO
+         ================================================================ -->
+    <h2 class="t-h2" style="padding-top:8px">Telas de produto</h2>
+
+    <section class="bloco" id="tela-agenda">
+      <div class="bloco-cabecalho"><h3 class="t-h3">Agenda semanal</h3><p class="nota">Sidebar de ícones, topbar com busca e CTA outline, agenda em colunas por profissional — cada coluna sublinhada por uma cor, cada agendamento em card tonal com barra de status.</p></div>
+      <div class="tela-produto">
+        <nav class="tp-sidebar" aria-label="Navegação do produto">
+          <span class="selo"><svg width="16" height="16" viewBox="0 0 32 32" fill="none"><path d="M6 16h5l2-6 4 12 3-6h6" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+          <span class="tp-icone ativo" title="Agenda" aria-current="page"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><rect x="3.5" y="4.5" width="17" height="16" rx="3" stroke="currentColor" stroke-width="1.7"/><path d="M3.5 9.5h17M8 2.5v4M16 2.5v4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></span>
+          <span class="tp-icone" title="Pacientes"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><circle cx="9" cy="8" r="3.2" stroke="currentColor" stroke-width="1.7"/><path d="M3.5 20c0-3.4 2.5-6 5.5-6s5.5 2.6 5.5 6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><circle cx="17.5" cy="9" r="2.4" stroke="currentColor" stroke-width="1.6"/><path d="M15 20c.1-2.6 1.6-4.6 3.5-4.9" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></span>
+          <span class="tp-icone" title="Financeiro"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8.2" stroke="currentColor" stroke-width="1.7"/><path d="M12 7.5v9M9.3 9.6c0-1.2 1.2-2 2.7-2s2.7.8 2.7 2c0 2.6-5.4 1.4-5.4 4 0 1.2 1.2 2 2.7 2s2.7-.8 2.7-2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></span>
+          <span class="tp-icone" title="Fotos e mapa"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><rect x="3" y="6.5" width="18" height="13" rx="2.5" stroke="currentColor" stroke-width="1.7"/><path d="M8 6.5 9.6 4h4.8L16 6.5" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><circle cx="12" cy="13" r="3.4" stroke="currentColor" stroke-width="1.7"/></svg></span>
+          <span class="tp-icone" title="Configurações"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.7"/><path d="M12 3.5v2M12 18.5v2M4.6 6.6l1.4 1.4M18 16l1.4 1.4M3.5 12h2M18.5 12h2M4.6 17.4 6 16M18 8l1.4-1.4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></span>
+        </nav>
+        <header class="tp-topbar">
+          <div class="linha align-center" style="gap:20px;flex:1">
+            <span class="t-corpo-forte" style="white-space:nowrap">Hello Doctor</span>
+            <label class="tp-busca">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="11" cy="11" r="6.5" stroke="currentColor" stroke-width="1.8"/><path d="M20 20l-4.3-4.3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+              <input type="text" placeholder="Buscar paciente, procedimento…" aria-label="Buscar">
+            </label>
+            <nav class="tp-menus">
+              <span>Agenda</span>
+              <span>Pacientes</span>
+              <span>Relatórios</span>
+            </nav>
+          </div>
+          <div class="tp-acoes">
+            <span class="tp-icone-topo"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M6 10a6 6 0 1 1 12 0c0 4 1.5 5.5 1.5 5.5H4.5S6 14 6 10Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M10 19a2 2 0 0 0 4 0" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg><span class="ponto-notif"></span></span>
+            <span class="avatar tam-32">HC</span>
+            <button class="botao secundario pequeno">Novo agendamento</button>
+          </div>
+        </header>
+        <div class="tp-conteudo">
+          <div class="linha" style="justify-content:space-between;margin-bottom:16px">
+            <h4 class="t-h3" style="font-size:20px">Segunda-feira, 31 de agosto</h4>
+            <span class="t-legenda">3 profissionais em atendimento hoje</span>
+          </div>
+          <div class="agenda-colunas">
+            <div class="coluna-profissional">
+              <div class="cab-profissional"><span class="avatar tam-32">HC</span><div class="nome-prof">Dra. Helena Cattani</div><div class="barra-cor" style="background:var(--cor-primario)"></div></div>
+              <span class="slot-hora">09:00</span>
+              <div class="card-agendamento primario"><span class="paciente">Beatriz A. Lemos</span><span class="meta">09:00 · Unidade Centro</span><span class="chip-tipo">Harmonização — sessão 3</span></div>
+              <span class="slot-hora">10:20</span>
+              <div class="card-agendamento erro"><span class="paciente">Camila Nogueira</span><span class="meta">10:20 · Faltou</span><span class="chip-tipo">Toxina botulínica</span></div>
+              <span class="slot-hora">11:40</span>
+              <div class="card-agendamento vazio">Horário livre</div>
+            </div>
+            <div class="coluna-profissional">
+              <div class="cab-profissional"><span class="avatar tam-32" style="background:var(--cor-sucesso-superficie);color:var(--cor-sucesso-texto)">MD</span><div class="nome-prof">Marina Duque</div><div class="barra-cor" style="background:var(--cor-sucesso)"></div></div>
+              <span class="slot-hora">09:40</span>
+              <div class="card-agendamento atencao"><span class="paciente">Rafael Tanure Costa</span><span class="meta">09:40 · a confirmar</span><span class="chip-tipo">Retorno — emagrecimento</span></div>
+              <span class="slot-hora">11:00</span>
+              <div class="card-agendamento sucesso"><span class="paciente">Juliana Prado Reis</span><span class="meta">11:00 · Unidade Centro</span><span class="chip-tipo">Avaliação — GLP-1</span></div>
+              <span class="slot-hora">14:00</span>
+              <div class="card-agendamento vazio">Horário livre</div>
+            </div>
+            <div class="coluna-profissional">
+              <div class="cab-profissional"><span class="avatar tam-32" style="background:var(--cor-suporte-superficie);color:var(--cor-suporte-texto)">AP</span><div class="nome-prof">Enf. Aline Petry</div><div class="barra-cor" style="background:var(--cor-suporte)"></div></div>
+              <span class="slot-hora">10:20</span>
+              <div class="card-agendamento sucesso"><span class="paciente">Marcos V. Salgado</span><span class="meta">10:20 · Unidade Centro</span><span class="chip-tipo">Avaliação inicial</span></div>
+              <span class="slot-hora">11:00</span>
+              <div class="card-agendamento vazio">Bloqueio — almoço</div>
+              <span class="slot-hora">13:30</span>
+              <div class="card-agendamento primario"><span class="paciente">Débora Machado Lins</span><span class="meta">13:30 · Unidade Centro</span><span class="chip-tipo">Preenchimento labial</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="bloco" id="tela-prontuario">
+      <div class="bloco-cabecalho"><h3 class="t-h3">Prontuário do paciente</h3><p class="nota">Mesma casca (sidebar + topbar), conteúdo com card de paciente, linha do tempo e o card de IA flutuante antecipando a transcrição de consulta da fase 4.</p></div>
+      <div class="tela-produto">
+        <nav class="tp-sidebar" aria-label="Navegação do produto">
+          <span class="selo"><svg width="16" height="16" viewBox="0 0 32 32" fill="none"><path d="M6 16h5l2-6 4 12 3-6h6" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+          <span class="tp-icone" title="Agenda"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><rect x="3.5" y="4.5" width="17" height="16" rx="3" stroke="currentColor" stroke-width="1.7"/><path d="M3.5 9.5h17M8 2.5v4M16 2.5v4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></span>
+          <span class="tp-icone ativo" title="Pacientes" aria-current="page"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><circle cx="9" cy="8" r="3.2" stroke="currentColor" stroke-width="1.7"/><path d="M3.5 20c0-3.4 2.5-6 5.5-6s5.5 2.6 5.5 6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><circle cx="17.5" cy="9" r="2.4" stroke="currentColor" stroke-width="1.6"/><path d="M15 20c.1-2.6 1.6-4.6 3.5-4.9" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></span>
+          <span class="tp-icone" title="Financeiro"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8.2" stroke="currentColor" stroke-width="1.7"/><path d="M12 7.5v9M9.3 9.6c0-1.2 1.2-2 2.7-2s2.7.8 2.7 2c0 2.6-5.4 1.4-5.4 4 0 1.2 1.2 2 2.7 2s2.7-.8 2.7-2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></span>
+          <span class="tp-icone" title="Fotos e mapa"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><rect x="3" y="6.5" width="18" height="13" rx="2.5" stroke="currentColor" stroke-width="1.7"/><path d="M8 6.5 9.6 4h4.8L16 6.5" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><circle cx="12" cy="13" r="3.4" stroke="currentColor" stroke-width="1.7"/></svg></span>
+          <span class="tp-icone" title="Configurações"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.7"/><path d="M12 3.5v2M12 18.5v2M4.6 6.6l1.4 1.4M18 16l1.4 1.4M3.5 12h2M18.5 12h2M4.6 17.4 6 16M18 8l1.4-1.4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></span>
+        </nav>
+        <header class="tp-topbar">
+          <div class="linha align-center" style="gap:20px;flex:1">
+            <span class="t-corpo-forte" style="white-space:nowrap">Hello Doctor</span>
+            <label class="tp-busca">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="11" cy="11" r="6.5" stroke="currentColor" stroke-width="1.8"/><path d="M20 20l-4.3-4.3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+              <input type="text" placeholder="Buscar paciente, procedimento…" aria-label="Buscar">
+            </label>
+          </div>
+          <div class="tp-acoes">
+            <span class="tp-icone-topo"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M6 10a6 6 0 1 1 12 0c0 4 1.5 5.5 1.5 5.5H4.5S6 14 6 10Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M10 19a2 2 0 0 0 4 0" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></span>
+            <span class="avatar tam-32">HC</span>
+            <button class="botao secundario pequeno">Editar ficha</button>
+          </div>
+        </header>
+        <div class="tp-conteudo">
+          <div style="display:grid;grid-template-columns:1fr 300px;gap:var(--espaco-6);align-items:start">
+            <div style="display:flex;flex-direction:column;gap:var(--espaco-5)">
+              <div class="card-paciente" style="max-width:none">
+                <div class="topo">
+                  <div class="foto-paciente" role="img" aria-label="Foto de perfil de Beatriz Andrade Lemos"></div>
+                  <div>
+                    <p class="t-h3 nome">Beatriz Andrade Lemos</p>
+                    <p class="t-legenda">Protocolo de harmonização facial · iniciado em 02/06/2026</p>
+                    <div class="chips">
+                      <span class="pill neutro tonal"><span class="ponto"></span>34 anos</span>
+                      <span class="pill primario tonal"><span class="ponto"></span>Sessão 3 de 4</span>
+                      <span class="pill neutro tonal"><span class="ponto"></span>Última visita 11/08/2026</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="regua-progresso"><div class="segmento clinico" style="width:75%"></div><div class="segmento comercial" style="width:60%"></div></div>
+                <div class="regua-legenda">
+                  <span class="item"><span class="ponto" style="background:var(--cor-primario)"></span>Andamento clínico — 3 de 4 sessões</span>
+                  <span class="item"><span class="ponto" style="background:var(--cor-suporte)"></span>Saldo pago — 60%</span>
+                </div>
+              </div>
+              <div class="vitrine" style="padding:var(--espaco-5)">
+                <h4 class="t-titulo vitrine-titulo">Linha do tempo</h4>
+                <div class="timeline">
+                  <div class="evento"><div class="no realizado"></div><div class="cabecalho-evento"><span class="t-corpo-forte">Sessão 2 — Preenchimento labial</span><span class="pill sucesso tonal"><span class="ponto"></span>Realizado</span></div><p class="meta t-dado">14/07/2026 · Juvéderm Voluma JV-77213</p></div>
+                  <div class="evento"><div class="no planejado"></div><div class="cabecalho-evento"><span class="t-corpo-forte">Sessão 3 — Bioestimulador</span><span class="pill neutro tonal"><span class="ponto"></span>Planejado</span></div><p class="meta t-dado">08/09/2026 · dentro do intervalo esperado</p></div>
+                </div>
+              </div>
+            </div>
+            <div class="card-ia">
+              <div class="cabecalho-ia">
+                <span class="icone-quadrado primario"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 3.5a3.2 3.2 0 0 1 3.2 3.2v5a3.2 3.2 0 0 1-6.4 0v-5A3.2 3.2 0 0 1 12 3.5Z" stroke="currentColor" stroke-width="1.6"/><path d="M6.5 11a5.5 5.5 0 0 0 11 0M12 16.5v3.5M9 20h6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></span>
+                <div>
+                  <p class="t-titulo" style="font-size:15px">Transcrição pronta</p>
+                  <p class="t-legenda">Consulta de 14/07 · 8 min de áudio</p>
+                </div>
+              </div>
+              <p class="t-pequeno" style="margin-top:12px">"Paciente relata satisfação com o resultado do preenchimento labial, sem edema residual. Solicita avaliação para sulco nasogeniano na próxima sessão."</p>
+              <div class="tags">
+                <span class="tag">Sem intercorrência</span>
+                <span class="tag">Nova queixa registrada</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================================================================
+         COMPONENTES
+         ================================================================ -->
+    <h2 class="t-h2" style="padding-top:8px">Componentes</h2>
+
+    <!-- Botão -->
+    <section class="bloco" id="c-botao">
+      <div class="bloco-cabecalho"><h3 class="t-h3">Botão</h3><p class="nota">Contexto clínico (azul) e comercial (laranja) trocam a cor de acento pelo wrapper <code>.contexto-comercial</code>. Raio 12px, weight 500, nunca 700.</p></div>
+      <div class="vitrine">
+        <h4 class="t-subtitulo vitrine-titulo">Contexto clínico</h4>
+        <div class="linha align-center">
+          <button class="botao">Registrar evolução</button>
+          <button class="botao secundario">Adicionar foto</button>
+          <button class="botao terciario">Ver histórico completo</button>
+          <button class="botao" disabled>Enviando prescrição</button>
+          <button class="botao"><span class="spinner" aria-hidden="true"></span>Salvando…</button>
+          <button class="botao pequeno secundario">Compacto</button>
+        </div>
+      </div>
+      <div class="vitrine contexto-comercial">
+        <h4 class="t-subtitulo vitrine-titulo">Contexto comercial</h4>
+        <div class="linha align-center">
+          <button class="botao">Fechar orçamento</button>
+          <button class="botao secundario">Adicionar opção B</button>
+          <button class="botao terciario">Enviar por WhatsApp</button>
+        </div>
+      </div>
+      <div class="vitrine">
+        <h4 class="t-subtitulo vitrine-titulo">Neutro</h4>
+        <div class="linha align-center">
+          <button class="botao neutro">Exportar dados do paciente</button>
+          <button class="botao neutro secundario">Cancelar</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Campo de formulário -->
+    <section class="bloco" id="c-formulario">
+      <div class="bloco-cabecalho"><h3 class="t-h3">Campo de formulário</h3><p class="nota">Rótulo sempre visível, erro substitui o texto de ajuda com ícone + <code>role="alert"</code>.</p></div>
+      <div class="vitrine">
+        <div class="linha">
+          <div class="campo">
+            <label for="f-nome">Nome completo</label>
+            <input type="text" id="f-nome" value="Rafael Tanure Costa">
+            <span class="ajuda">Como consta no documento de identidade</span>
+          </div>
+          <div class="campo com-erro">
+            <label for="f-cpf">CPF</label>
+            <div class="campo-icone-erro">
+              <input type="text" id="f-cpf" value="384.910.220-1" aria-invalid="true" aria-describedby="f-cpf-erro">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M8 1 15 14H1L8 1Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M8 6v3.2M8 11.4v.1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+            </div>
+            <span class="erro-msg" id="f-cpf-erro" role="alert">
+              <svg width="12" height="12" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M8 1 15 14H1L8 1Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M8 6v3.2M8 11.4v.1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+              CPF inválido — confira o dígito verificador
+            </span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Select -->
+    <section class="bloco" id="c-select">
+      <div class="bloco-cabecalho"><h3 class="t-h3">Select</h3><p class="nota">Mesma anatomia do campo de texto, para escaneamento consistente.</p></div>
+      <div class="vitrine">
+        <div class="campo">
+          <label for="f-procedimento">Procedimento</label>
+          <div class="select-wrap">
+            <select id="f-procedimento">
+              <option>Toxina botulínica</option>
+              <option selected>Preenchimento com ácido hialurônico</option>
+              <option>Bioestimulador de colágeno (Sculptra)</option>
+              <option>Fios de PDO</option>
+              <option>Peeling de fenol</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Data -->
+    <section class="bloco" id="c-data">
+      <div class="bloco-cabecalho"><h3 class="t-h3">Data</h3><p class="nota">Formato dd/mm/aaaa fixo — o produto é Brasil.</p></div>
+      <div class="vitrine">
+        <div class="campo">
+          <label for="f-data">Data do retorno</label>
+          <input type="date" id="f-data" value="2026-09-08">
+          <span class="ajuda">Intervalo mínimo do protocolo: 21 dias</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Upload -->
+    <section class="bloco" id="c-upload">
+      <div class="bloco-cabecalho"><h3 class="t-h3">Upload</h3><p class="nota">Zona de arraste com formato e limite explícitos.</p></div>
+      <div class="vitrine">
+        <div class="dropzone">
+          <strong>Arraste a foto clínica ou clique para selecionar</strong>
+          <span>Fotos enviadas por upload não seguem o guia de pose da captura — use a câmera para manter o padrão de comparação.</span>
+          <span class="formatos">JPG ou PNG · até 15 MB por arquivo</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Tabela densa -->
+    <section class="bloco" id="c-tabela">
+      <div class="bloco-cabecalho"><h3 class="t-h3">Tabela densa</h3><p class="nota">Densidade de recepção — linha de 40px, número alinhado à direita.</p></div>
+      <div class="vitrine">
+        <div class="tabela-wrap">
+          <table class="densa">
+            <thead><tr><th>Paciente</th><th>Procedimento</th><th>Profissional</th><th>Horário</th><th>Status</th><th class="num">Saldo</th><th></th></tr></thead>
+            <tbody>
+              <tr><td>Beatriz Andrade Lemos</td><td>Harmonização facial — sessão 3</td><td>Dra. Helena Cattani</td><td class="num">09:00</td><td><span class="pill sucesso tonal"><span class="ponto"></span>Confirmado</span></td><td class="num">2 sessões</td><td class="acoes"><button class="icon-btn" aria-label="Abrir prontuário">›</button></td></tr>
+              <tr><td>Rafael Tanure Costa</td><td>Emagrecimento — retorno</td><td>Marina Duque</td><td class="num">09:40</td><td><span class="pill atencao tonal"><span class="ponto"></span>Pendente</span></td><td class="num">4 sessões</td><td class="acoes"><button class="icon-btn" aria-label="Abrir prontuário">›</button></td></tr>
+              <tr><td>Camila Nogueira Prado</td><td>Toxina botulínica</td><td>Dra. Helena Cattani</td><td class="num">10:20</td><td><span class="pill erro tonal"><span class="ponto"></span>Faltou</span></td><td class="num">1 sessão</td><td class="acoes"><button class="icon-btn" aria-label="Abrir prontuário">›</button></td></tr>
+              <tr><td>Marcos Vinícius Salgado</td><td>Avaliação inicial</td><td>Enf. Aline Petry</td><td class="num">11:00</td><td><span class="pill neutro tonal"><span class="ponto"></span>Agendado</span></td><td class="num">—</td><td class="acoes"><button class="icon-btn" aria-label="Abrir prontuário">›</button></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- Card de paciente -->
+    <section class="bloco" id="c-card-paciente">
+      <div class="bloco-cabecalho"><h3 class="t-h3">Card de paciente</h3><p class="nota">Nome em Inter 500, chips em pill com ponto, régua azul/laranja de andamento clínico vs. comercial.</p></div>
+      <div class="vitrine">
+        <div class="card-paciente">
+          <div class="topo">
+            <div class="foto-paciente" role="img" aria-label="Foto de perfil de Beatriz Andrade Lemos"></div>
+            <div>
+              <p class="t-h3 nome">Beatriz Andrade Lemos</p>
+              <p class="t-legenda">Protocolo de harmonização facial · iniciado em 02/06/2026</p>
+              <div class="chips">
+                <span class="pill neutro tonal"><span class="ponto"></span>34 anos</span>
+                <span class="pill primario tonal"><span class="ponto"></span>Sessão 3 de 4</span>
+                <span class="pill neutro tonal"><span class="ponto"></span>Última visita 11/08/2026</span>
+              </div>
+            </div>
+          </div>
+          <div class="regua-progresso"><div class="segmento clinico" style="width:75%"></div><div class="segmento comercial" style="width:60%"></div></div>
+          <div class="regua-legenda">
+            <span class="item"><span class="ponto" style="background:var(--cor-primario)"></span>Andamento clínico — 3 de 4 sessões</span>
+            <span class="item"><span class="ponto" style="background:var(--cor-suporte)"></span>Saldo pago — 60%</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Linha do tempo -->
+    <section class="bloco" id="c-timeline">
+      <div class="bloco-cabecalho"><h3 class="t-h3">Linha do tempo clínica</h3><p class="nota">Um nó por atendimento — nunca agrega dois atendimentos numa linha só.</p></div>
+      <div class="vitrine">
+        <div class="timeline">
+          <div class="evento"><div class="no realizado"></div><div class="cabecalho-evento"><span class="t-corpo-forte">Avaliação inicial</span><span class="pill sucesso tonal"><span class="ponto"></span>Realizado</span></div><p class="meta t-dado">02/06/2026 · Dra. Helena Cattani</p></div>
+          <div class="evento"><div class="no realizado"></div><div class="cabecalho-evento"><span class="t-corpo-forte">Sessão 1 — Toxina botulínica</span><span class="pill sucesso tonal"><span class="ponto"></span>Realizado</span></div><p class="meta t-dado">16/06/2026 · Dra. Helena Cattani · Lote BTX-24891</p></div>
+          <div class="evento"><div class="no faltou"></div><div class="cabecalho-evento"><span class="t-corpo-forte">Sessão 2 — remarcação</span><span class="pill erro tonal"><span class="ponto"></span>Faltou</span></div><p class="meta t-dado">03/07/2026 · reagendado para 14/07</p></div>
+          <div class="evento"><div class="no realizado"></div><div class="cabecalho-evento"><span class="t-corpo-forte">Sessão 2 — Preenchimento labial</span><span class="pill sucesso tonal"><span class="ponto"></span>Realizado</span></div><p class="meta t-dado">14/07/2026 · Juvéderm Voluma JV-77213</p></div>
+          <div class="evento"><div class="no planejado"></div><div class="cabecalho-evento"><span class="t-corpo-forte">Sessão 3 — Bioestimulador</span><span class="pill neutro tonal"><span class="ponto"></span>Planejado</span></div><p class="meta t-dado">08/09/2026 · dentro do intervalo esperado</p></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Badge / pill -->
+    <section class="bloco" id="c-badge">
+      <div class="bloco-cabecalho"><h3 class="t-h3">Badge de status (pill)</h3><p class="nota">Padrão Amigo: fundo branco ou tonal, borda fina, radius total, ponto colorido à esquerda.</p></div>
+      <div class="vitrine">
+        <h4 class="t-subtitulo vitrine-titulo">Contorno branco</h4>
+        <div class="linha align-center">
+          <span class="pill sucesso"><span class="ponto"></span>Pago</span>
+          <span class="pill erro"><span class="ponto"></span>Vencido</span>
+          <span class="pill atencao"><span class="ponto"></span>A vencer</span>
+          <span class="pill primario"><span class="ponto"></span>Em tratamento</span>
+          <span class="pill suporte"><span class="ponto"></span>Orçamento enviado</span>
+          <span class="pill neutro"><span class="ponto"></span>Rascunho</span>
+        </div>
+      </div>
+      <div class="vitrine">
+        <h4 class="t-subtitulo vitrine-titulo">Fundo tonal</h4>
+        <div class="linha align-center">
+          <span class="pill sucesso tonal"><span class="ponto"></span>Pago</span>
+          <span class="pill erro tonal"><span class="ponto"></span>Vencido</span>
+          <span class="pill atencao tonal"><span class="ponto"></span>A vencer</span>
+          <span class="pill primario tonal"><span class="ponto"></span>Em tratamento</span>
+          <span class="pill suporte tonal"><span class="ponto"></span>Orçamento enviado</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Avatar -->
+    <section class="bloco" id="c-avatar">
+      <div class="bloco-cabecalho"><h3 class="t-h3">Avatar</h3><p class="nota">Iniciais sobre superfície azul quando não há foto. Nunca abaixo de 24px.</p></div>
+      <div class="vitrine">
+        <div class="linha align-center">
+          <span class="avatar tam-24">BA</span>
+          <span class="avatar tam-32">RT</span>
+          <span class="avatar tam-40">CN</span>
+          <span class="avatar tam-40 foto" style="background-image:radial-gradient(circle at 35% 30%,#E7C9A3,#C98D5E 70%)" role="img" aria-label="Foto de Marcos Vinícius Salgado"></span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Card de agendamento -->
+    <section class="bloco" id="c-agendamento">
+      <div class="bloco-cabecalho"><h3 class="t-h3">Card de agendamento</h3><p class="nota">Fundo tonal da cor do status, barra vertical de 3px, nome em weight 500, chip de tipo embaixo.</p></div>
+      <div class="vitrine">
+        <div class="linha" style="max-width:720px">
+          <div class="card-agendamento primario" style="width:220px"><span class="paciente">Beatriz A. Lemos</span><span class="meta">09:00 · Unidade Centro</span><span class="chip-tipo">Harmonização — sessão 3</span></div>
+          <div class="card-agendamento sucesso" style="width:220px"><span class="paciente">Juliana Prado Reis</span><span class="meta">11:00 · concluído</span><span class="chip-tipo">Avaliação — GLP-1</span></div>
+          <div class="card-agendamento erro" style="width:220px"><span class="paciente">Camila Nogueira</span><span class="meta">10:20 · faltou</span><span class="chip-tipo">Toxina botulínica</span></div>
+          <div class="card-agendamento atencao" style="width:220px"><span class="paciente">Rafael Tanure</span><span class="meta">09:40 · a confirmar</span><span class="chip-tipo">Retorno</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Card de IA -->
+    <section class="bloco" id="c-ia">
+      <div class="bloco-cabecalho"><h3 class="t-h3">Card de IA flutuante</h3><p class="nota">Fundo branco, sombra difusa, ícone em quadrado azul claro, tags com borda fina embaixo.</p></div>
+      <div class="vitrine">
+        <div class="card-ia">
+          <div class="cabecalho-ia">
+            <span class="icone-quadrado primario"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 3.5a3.2 3.2 0 0 1 3.2 3.2v5a3.2 3.2 0 0 1-6.4 0v-5A3.2 3.2 0 0 1 12 3.5Z" stroke="currentColor" stroke-width="1.6"/><path d="M6.5 11a5.5 5.5 0 0 0 11 0M12 16.5v3.5M9 20h6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></span>
+            <div><p class="t-titulo" style="font-size:15px">Transcrição pronta</p><p class="t-legenda">Consulta de 14/07 · 8 min de áudio</p></div>
+          </div>
+          <p class="t-pequeno" style="margin-top:12px">"Paciente relata satisfação com o resultado do preenchimento labial, sem edema residual."</p>
+          <div class="tags"><span class="tag">Sem intercorrência</span><span class="tag">Nova queixa registrada</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Modal -->
+    <section class="bloco" id="c-modal">
+      <div class="bloco-cabecalho"><h3 class="t-h3">Modal</h3><p class="nota">No máximo duas ações no rodapé; foco retorna ao botão que abriu.</p></div>
+      <div class="vitrine">
+        <button class="botao" id="abrir-modal">Revogar consentimento de imagem</button>
+      </div>
+    </section>
+
+    <!-- Drawer -->
+    <section class="bloco" id="c-drawer">
+      <div class="bloco-cabecalho"><h3 class="t-h3">Drawer</h3><p class="nota">Mantém o contexto da tela de trás visível.</p></div>
+      <div class="vitrine">
+        <button class="botao secundario" id="abrir-drawer">Abrir ficha rápida</button>
+      </div>
+    </section>
+
+    <!-- Toast -->
+    <section class="bloco" id="c-toast">
+      <div class="bloco-cabecalho"><h3 class="t-h3">Toast</h3><p class="nota">Some sozinho em 5s, exceto erro — que fica até ser fechado.</p></div>
+      <div class="vitrine">
+        <div class="linha align-center">
+          <button class="botao secundario" id="toast-sucesso">Disparar toast de sucesso</button>
+          <button class="botao secundario" id="toast-alerta">Disparar toast de alerta</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Tabs -->
+    <section class="bloco" id="c-tabs">
+      <div class="bloco-cabecalho"><h3 class="t-h3">Tabs</h3><p class="nota">Sublinhado de 2px na cor de contexto, sem fundo de pílula.</p></div>
+      <div class="vitrine">
+        <div class="tabs-lista" role="tablist" aria-label="Seções do prontuário">
+          <button class="tab-btn ativo" role="tab" aria-selected="true" data-tab="t1">Anamnese</button>
+          <button class="tab-btn" role="tab" aria-selected="false" data-tab="t2">Evolução</button>
+          <button class="tab-btn" role="tab" aria-selected="false" data-tab="t3">Fotos</button>
+          <button class="tab-btn" role="tab" aria-selected="false" data-tab="t4">Financeiro</button>
+        </div>
+        <div class="tab-painel ativo" data-panel="t1"><p class="t-corpo">Sem histórico de alergia a anestésico local. Expectativa da paciente: suavizar sulco nasogeniano mantendo expressão natural.</p></div>
+        <div class="tab-painel" data-panel="t2"><p class="t-corpo">Evolução da sessão 2 registrada em 14/07/2026 — sem intercorrências, edema leve esperado por 48h.</p></div>
+        <div class="tab-painel" data-panel="t3"><p class="t-corpo">3 fotos capturadas — frontal, perfil direito e perfil esquerdo — todas na Sala Neutra, com guia de pose alinhado.</p></div>
+        <div class="tab-painel" data-panel="t4"><p class="t-corpo">Orçamento aceito em 28/05/2026 · 4 sessões · saldo pago 60%.</p></div>
+      </div>
+    </section>
+
+    <!-- Empty state -->
+    <section class="bloco" id="c-empty">
+      <div class="bloco-cabecalho"><h3 class="t-h3">Empty state</h3><p class="nota">Traço fino, nunca ilustração colorida grande.</p></div>
+      <div class="vitrine">
+        <div class="empty-state">
+          <svg width="48" height="48" viewBox="0 0 48 48" fill="none" aria-hidden="true"><rect x="8" y="10" width="32" height="28" rx="6" stroke="currentColor" stroke-width="1.5"/><path d="M8 18h32" stroke="currentColor" stroke-width="1.5"/><path d="M16 26h6M16 31h12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          <p class="t-titulo">Nenhuma foto registrada ainda</p>
+          <p class="t-pequeno">A primeira foto define o padrão de enquadramento para todas as comparações futuras deste paciente.</p>
+          <button class="botao pequeno">Capturar primeira foto</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Skeleton -->
+    <section class="bloco" id="c-skeleton">
+      <div class="bloco-cabecalho"><h3 class="t-h3">Skeleton</h3><p class="nota">No formato exato do conteúdo que vai substituir.</p></div>
+      <div class="vitrine">
+        <button class="botao secundario pequeno" id="simular-skeleton" style="margin-bottom:16px">Simular carregamento</button>
+        <div id="skeleton-area" style="max-width:420px">
+          <div class="linha" style="gap:12px;align-items:center">
+            <span class="skeleton" style="width:40px;height:40px;border-radius:50%"></span>
+            <div style="flex:1">
+              <span class="skeleton" style="display:block;width:65%;height:14px;margin-bottom:8px"></span>
+              <span class="skeleton" style="display:block;width:40%;height:12px"></span>
+            </div>
+          </div>
+        </div>
+        <div id="conteudo-real" style="display:none;max-width:420px">
+          <div class="linha" style="gap:12px;align-items:center">
+            <span class="avatar tam-40">CN</span>
+            <div><p class="t-corpo-forte">Camila Nogueira Prado</p><p class="t-legenda">Toxina botulínica · 10:20</p></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Paginação -->
+    <section class="bloco" id="c-paginacao">
+      <div class="bloco-cabecalho"><h3 class="t-h3">Paginação</h3><p class="nota">Numérica, preferida a scroll infinito.</p></div>
+      <div class="vitrine">
+        <nav class="paginacao" aria-label="Paginação de pacientes">
+          <button class="pagina-btn" disabled aria-label="Página anterior">‹</button>
+          <button class="pagina-btn ativo" aria-current="page">1</button>
+          <button class="pagina-btn">2</button>
+          <button class="pagina-btn">3</button>
+          <span class="pagina-btn" aria-hidden="true">…</span>
+          <button class="pagina-btn">12</button>
+          <button class="pagina-btn" aria-label="Próxima página">›</button>
+        </nav>
+      </div>
+    </section>
+
+    <!-- Comparador de foto -->
+    <section class="bloco" id="c-comparador">
+      <div class="bloco-cabecalho"><h3 class="t-h3">Comparador de foto antes/depois</h3><p class="nota">Roda inteiramente na Sala Neutra — cinza fixo, chrome dessaturado, sem azul nem laranja.</p></div>
+      <div class="vitrine" style="background:var(--cor-neutro-100)">
+        <div class="sala-neutra">
+          <div class="chrome-topo"><span>SALA NEUTRA · Beatriz Andrade Lemos · Pose frontal</span><span class="icone">⇄ trocar pose</span></div>
+          <div class="comparador">
+            <div class="camada antes"></div>
+            <div class="camada depois" id="camada-depois"></div>
+            <div class="guia-pose" aria-hidden="true"></div>
+            <span class="rotulo antes-r">ANTES · 02/06/2026</span>
+            <span class="rotulo depois-r">DEPOIS · 11/08/2026</span>
+            <div class="slider-linha" id="slider-linha"></div>
+          </div>
+          <input type="range" min="0" max="100" value="50" id="comparador-range" aria-label="Ajustar posição do comparador antes e depois">
+          <div class="meta-fotos"><span>Pose: frontal · guia alinhado</span><span>Profissional: Dra. Helena Cattani</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Gráfico -->
+    <section class="bloco" id="c-grafico">
+      <div class="bloco-cabecalho"><h3 class="t-h3">Gráfico de evolução de medida</h3><p class="nota">Eixo Y não começa em zero quando isso achataria uma variação clinicamente significativa.</p></div>
+      <div class="vitrine">
+        <div class="grafico-card">
+          <div class="grafico-cabecalho">
+            <div><p class="t-corpo-forte">Rafael Tanure Costa — peso corporal</p><p class="t-legenda">Protocolo de emagrecimento · GLP-1 (Tirzepatida) · 8 medições</p></div>
+            <span class="t-dado">Último registro: 86,3 kg em 26/08/2026</span>
+          </div>
+          <svg viewBox="0 0 640 220" width="100%" height="220" role="img" aria-label="Gráfico de linha mostrando a queda de peso de Rafael Tanure Costa de 96,4kg em 20/05/2026 para 86,3kg em 26/08/2026, dentro da faixa esperada do protocolo">
+            <line x1="32" y1="37.6" x2="608" y2="37.6" stroke="var(--cor-borda)" stroke-width="1"/>
+            <line x1="32" y1="121.1" x2="608" y2="121.1" stroke="var(--cor-borda)" stroke-width="1"/>
+            <line x1="32" y1="188" x2="608" y2="188" stroke="var(--cor-borda)" stroke-width="1"/>
+            <text x="0" y="41" fill="var(--texto-fraco)" font-size="10" font-family="Inter">98kg</text>
+            <text x="0" y="125" fill="var(--texto-fraco)" font-size="10" font-family="Inter">91kg</text>
+            <text x="0" y="192" fill="var(--texto-fraco)" font-size="10" font-family="Inter">84kg</text>
+            <polygon points="32,37.6 114.29,54.3 196.57,71.0 278.86,87.7 361.14,104.4 443.43,121.1 525.71,135.6 608,149.0 608,184.7 525.71,179.1 443.43,163.5 361.14,145.6 278.86,126.7 196.57,107.7 114.29,87.7 32,65.4" fill="var(--cor-primario-superficie)" opacity="0.9"/>
+            <polyline points="32,49.8 114.29,67.7 196.57,86.6 278.86,103.3 361.14,118.9 443.43,133.4 525.71,149.0 608,162.3" fill="none" stroke="var(--cor-primario)" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+            <g fill="var(--cor-primario-forte)">
+              <circle cx="32" cy="49.8" r="3.5"/><circle cx="114.29" cy="67.7" r="3.5"/><circle cx="196.57" cy="86.6" r="3.5"/><circle cx="278.86" cy="103.3" r="3.5"/><circle cx="361.14" cy="118.9" r="3.5"/><circle cx="443.43" cy="133.4" r="3.5"/><circle cx="525.71" cy="149.0" r="3.5"/><circle cx="608" cy="162.3" r="4" stroke="var(--cor-base)" stroke-width="2"/>
+            </g>
+            <text x="590" y="180" text-anchor="end" fill="var(--cor-primario-forte)" font-size="13" font-weight="600" font-family="Inter">86,3kg</text>
+          </svg>
+          <div class="linha" style="gap:20px;margin-top:8px">
+            <span class="t-legenda"><span style="display:inline-block;width:10px;height:10px;background:var(--cor-primario);border-radius:50%;margin-right:6px;vertical-align:middle"></span>Peso registrado</span>
+            <span class="t-legenda"><span style="display:inline-block;width:10px;height:10px;background:var(--cor-primario-superficie);border:1px solid var(--cor-primario);margin-right:6px;vertical-align:middle"></span>Faixa esperada do protocolo</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Mapa facial -->
+    <section class="bloco" id="c-mapa">
+      <div class="bloco-cabecalho"><h3 class="t-h3">Marcador de ponto no mapa facial</h3><p class="nota">Produto, lote e quantidade só aparecem no popover.</p></div>
+      <div class="vitrine">
+        <div class="mapa-card">
+          <div class="mapa-svg-wrap">
+            <svg width="220" height="280" viewBox="0 0 220 280" aria-hidden="true">
+              <ellipse cx="110" cy="140" rx="82" ry="115" fill="var(--cor-neutro-100)" stroke="var(--cor-borda-forte)" stroke-width="1.5"/>
+              <ellipse cx="80" cy="120" rx="8" ry="5" fill="var(--cor-borda-forte)"/>
+              <ellipse cx="140" cy="120" rx="8" ry="5" fill="var(--cor-borda-forte)"/>
+              <path d="M110 130 108 165 116 168" stroke="var(--cor-borda-forte)" stroke-width="1.5" fill="none"/>
+              <path d="M90 205 Q110 218 130 205" stroke="var(--cor-borda-forte)" stroke-width="1.5" fill="none"/>
+            </svg>
+            <button class="marcador" style="left:110px;top:113px" data-ponto="p1" aria-expanded="false" aria-label="Ponto 1 — Glabela">1</button>
+            <button class="marcador" style="left:70px;top:150px" data-ponto="p2" aria-expanded="false" aria-label="Ponto 2 — Malar direito">2</button>
+            <button class="marcador" style="left:150px;top:150px" data-ponto="p3" aria-expanded="false" aria-label="Ponto 3 — Malar esquerdo">3</button>
+            <button class="marcador" style="left:85px;top:190px" data-ponto="p4" aria-expanded="false" aria-label="Ponto 4 — Sulco nasogeniano direito">4</button>
+
+            <div class="popover-marcador" id="pop-p1" role="dialog" aria-label="Detalhe do ponto 1">
+              <p class="t-corpo-forte">Ponto 1 — Glabela</p>
+              <dl><dt>Produto</dt><dd>Botulift 100U</dd><dt>Lote</dt><dd>BTX-24891</dd><dt>Quantidade</dt><dd>6 UI</dd></dl>
+            </div>
+            <div class="popover-marcador" id="pop-p2" role="dialog" aria-label="Detalhe do ponto 2">
+              <p class="t-corpo-forte">Ponto 2 — Malar direito</p>
+              <dl><dt>Produto</dt><dd>Juvéderm Voluma</dd><dt>Lote</dt><dd>JV-77213</dd><dt>Quantidade</dt><dd>0,5 ml</dd></dl>
+            </div>
+            <div class="popover-marcador" id="pop-p3" role="dialog" aria-label="Detalhe do ponto 3">
+              <p class="t-corpo-forte">Ponto 3 — Malar esquerdo</p>
+              <dl><dt>Produto</dt><dd>Juvéderm Voluma</dd><dt>Lote</dt><dd>JV-77213</dd><dt>Quantidade</dt><dd>0,5 ml</dd></dl>
+            </div>
+            <div class="popover-marcador" id="pop-p4" role="dialog" aria-label="Detalhe do ponto 4">
+              <p class="t-corpo-forte">Ponto 4 — Sulco nasogeniano direito</p>
+              <dl><dt>Produto</dt><dd>Juvéderm Voluma</dd><dt>Lote</dt><dd>JV-77213</dd><dt>Quantidade</dt><dd>0,3 ml</dd></dl>
+            </div>
+          </div>
+          <div class="legenda-mapa">
+            <p class="t-pequeno">Clique em um ponto para ver produto, lote e quantidade aplicada. Marcar o ponto é o ato que baixa o estoque — não existe tela separada de baixa manual.</p>
+            <div class="linha-legenda"><span>Total aplicado nesta sessão</span><span class="t-dado-forte">1,3 ml + 6 UI</span></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<!-- Modal -->
+<div class="overlay" id="overlay-modal">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-titulo">
+    <div class="modal-cabecalho">
+      <h3 class="t-titulo" id="modal-titulo">Revogar consentimento de imagem</h3>
+      <button class="fechar-btn" id="fechar-modal" aria-label="Fechar">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M2 2l12 12M14 2 2 14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+    <p class="t-corpo">A camada de uso externo/marketing será revogada para Beatriz Andrade Lemos. As fotos somem de todo fluxo de divulgação imediatamente e permanecem no prontuário. Esta ação é registrada na trilha de auditoria.</p>
+    <div class="modal-rodape">
+      <button class="botao neutro secundario" id="cancelar-modal">Cancelar</button>
+      <button class="botao">Confirmar revogação</button>
+    </div>
+  </div>
+</div>
+
+<!-- Drawer -->
+<div class="drawer-overlay" id="overlay-drawer"></div>
+<aside class="drawer" id="drawer" role="dialog" aria-modal="true" aria-labelledby="drawer-titulo">
+  <div class="modal-cabecalho">
+    <h3 class="t-titulo" id="drawer-titulo">Ficha rápida — Marcos Vinícius Salgado</h3>
+    <button class="fechar-btn" id="fechar-drawer" aria-label="Fechar">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M2 2l12 12M14 2 2 14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+    </button>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:16px;margin-top:8px">
+    <div class="linha align-center" style="gap:12px">
+      <span class="avatar tam-40">MS</span>
+      <div><p class="t-corpo-forte">Marcos Vinícius Salgado</p><p class="t-legenda">29 anos · primeira avaliação</p></div>
+    </div>
+    <p class="t-corpo">Chegou para avaliação inicial de harmonização facial. Sem ficha de anamnese preenchida ainda — abrir formulário completo antes do atendimento.</p>
+    <button class="botao">Abrir prontuário completo</button>
+  </div>
+</aside>
+
+<!-- Toasts -->
+<div class="toast-area" id="toast-area" aria-live="polite"></div>
+
+<script>
+(function(){
+  "use strict";
+
+  var raiz = document.documentElement;
+  var botaoTema = document.getElementById('botao-tema');
+  var iconeTema = document.getElementById('icone-tema');
+  var textoTema = document.getElementById('texto-tema');
+
+  function aplicarTema(modo){
+    if(modo === 'dark'){
+      raiz.setAttribute('data-theme','dark');
+      iconeTema.textContent = '☀'; textoTema.textContent = 'Tema claro';
+      botaoTema.setAttribute('aria-pressed','true');
+    } else {
+      raiz.setAttribute('data-theme','light');
+      iconeTema.textContent = '☾'; textoTema.textContent = 'Tema escuro';
+      botaoTema.setAttribute('aria-pressed','false');
+    }
+  }
+  var salvo = null;
+  try{ salvo = localStorage.getItem('hd-tema'); }catch(e){}
+  if(salvo){ aplicarTema(salvo); }
+  else{ aplicarTema(window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'); }
+
+  botaoTema.addEventListener('click', function(){
+    var atual = raiz.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
+    var novo = atual === 'dark' ? 'light' : 'dark';
+    aplicarTema(novo);
+    try{ localStorage.setItem('hd-tema', novo); }catch(e){}
+  });
+
+  document.querySelectorAll('.tab-btn').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var alvo = btn.getAttribute('data-tab');
+      document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('ativo'); b.setAttribute('aria-selected','false'); });
+      document.querySelectorAll('.tab-painel').forEach(function(p){ p.classList.remove('ativo'); });
+      btn.classList.add('ativo'); btn.setAttribute('aria-selected','true');
+      document.querySelector('[data-panel="'+alvo+'"]').classList.add('ativo');
+    });
+  });
+
+  var overlayModal = document.getElementById('overlay-modal');
+  var abrirModalBtn = document.getElementById('abrir-modal');
+  function abrirModal(){ overlayModal.classList.add('aberto'); document.getElementById('fechar-modal').focus(); }
+  function fecharModal(){ overlayModal.classList.remove('aberto'); abrirModalBtn.focus(); }
+  abrirModalBtn.addEventListener('click', abrirModal);
+  [document.getElementById('fechar-modal'), document.getElementById('cancelar-modal')].forEach(function(b){ b.addEventListener('click', fecharModal); });
+  overlayModal.addEventListener('click', function(e){ if(e.target === overlayModal) fecharModal(); });
+  document.addEventListener('keydown', function(e){ if(e.key === 'Escape' && overlayModal.classList.contains('aberto')) fecharModal(); });
+
+  var drawer = document.getElementById('drawer');
+  var overlayDrawer = document.getElementById('overlay-drawer');
+  var abrirDrawerBtn = document.getElementById('abrir-drawer');
+  function abrirDrawer(){ drawer.classList.add('aberto'); overlayDrawer.classList.add('aberto'); document.getElementById('fechar-drawer').focus(); }
+  function fecharDrawer(){ drawer.classList.remove('aberto'); overlayDrawer.classList.remove('aberto'); abrirDrawerBtn.focus(); }
+  abrirDrawerBtn.addEventListener('click', abrirDrawer);
+  document.getElementById('fechar-drawer').addEventListener('click', fecharDrawer);
+  overlayDrawer.addEventListener('click', fecharDrawer);
+  document.addEventListener('keydown', function(e){ if(e.key === 'Escape' && drawer.classList.contains('aberto')) fecharDrawer(); });
+
+  var toastArea = document.getElementById('toast-area');
+  function dispararToast(tipo, texto, persistente){
+    var el = document.createElement('div');
+    el.className = 'toast ' + tipo;
+    el.textContent = texto;
+    toastArea.appendChild(el);
+    if(!persistente){ setTimeout(function(){ el.remove(); }, 5000); }
+  }
+  document.getElementById('toast-sucesso').addEventListener('click', function(){ dispararToast('sucesso', 'Evolução salva com sucesso.'); });
+  document.getElementById('toast-alerta').addEventListener('click', function(){ dispararToast('alerta', 'Saldo insuficiente para agendar esta sessão.', true); });
+
+  document.getElementById('simular-skeleton').addEventListener('click', function(){
+    var skArea = document.getElementById('skeleton-area');
+    var real = document.getElementById('conteudo-real');
+    skArea.style.display = 'block'; real.style.display = 'none';
+    setTimeout(function(){ skArea.style.display = 'none'; real.style.display = 'block'; }, 1400);
+  });
+
+  var range = document.getElementById('comparador-range');
+  var camadaDepois = document.getElementById('camada-depois');
+  var sliderLinha = document.getElementById('slider-linha');
+  range.addEventListener('input', function(){
+    var v = range.value + '%';
+    camadaDepois.style.setProperty('--corte', v);
+    sliderLinha.style.setProperty('--corte', v);
+  });
+
+  document.querySelectorAll('.marcador').forEach(function(m){
+    m.addEventListener('click', function(){
+      var id = 'pop-' + m.getAttribute('data-ponto');
+      var pop = document.getElementById(id);
+      var estavaAberto = pop.classList.contains('aberto');
+      document.querySelectorAll('.popover-marcador').forEach(function(p){ p.classList.remove('aberto'); });
+      document.querySelectorAll('.marcador').forEach(function(mm){ mm.setAttribute('aria-expanded','false'); });
+      if(!estavaAberto){
+        pop.style.left = (parseInt(m.style.left) + 20) + 'px';
+        pop.style.top = (parseInt(m.style.top) - 10) + 'px';
+        pop.classList.add('aberto');
+        m.setAttribute('aria-expanded','true');
+      }
+    });
+  });
+  document.addEventListener('click', function(e){
+    if(!e.target.closest('.marcador') && !e.target.closest('.popover-marcador')){
+      document.querySelectorAll('.popover-marcador').forEach(function(p){ p.classList.remove('aberto'); });
+      document.querySelectorAll('.marcador').forEach(function(mm){ mm.setAttribute('aria-expanded','false'); });
+    }
+  });
+
+})();
+</script>
+</body>
+</html>
