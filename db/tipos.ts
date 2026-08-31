@@ -34,9 +34,19 @@ export interface TabelaPapel {
   criado_em: Criado;
 }
 
+export type OperacaoPermissao = "ver" | "criar" | "editar" | "excluir" | "aprovar";
+
+export interface TabelaPermissao {
+  id: Generated<string>;
+  papel_id: string;
+  modulo: string;
+  operacao: OperacaoPermissao;
+}
+
 export interface BancoHelloDoctor {
   clinica: TabelaClinica;
   usuario: TabelaUsuario;
   membro: TabelaMembro;
   papel: TabelaPapel;
+  permissao: TabelaPermissao;
 }
