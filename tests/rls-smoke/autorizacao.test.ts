@@ -107,3 +107,34 @@ describe("seed e matriz não divergem", () => {
     expect(doBanco).toEqual(daMatriz);
   });
 });
+
+describe("reconciliação do seed (aperto de acesso remove linha do banco)", () => {
+  async function existeNoBanco(papel: string, modulo: string, operacao: string): Promise<boolean> {
+    const r = await servico.query(
+      `select 1 from permissao pm
+       join papel p on p.id = pm.papel_id
+       where p.chave = $1 and pm.modulo = $2 and pm.operacao = $3`,
+      [papel, modulo, operacao],
+    );
+    return (r.rowCount ?? 0) > 0;
+  }
+
+  it("ressemear com uma entrada a menos remove a linha correspondente do banco", async () => {
+    // baseline: a entrada existe (recepcao/tpr/ver é semeada pela matriz real)
+    expect(await existeNoBanco("recepcao", "tpr", "ver")).toBe(true);
+
+    // "apaga uma entrada da matriz em memória": mesma MATRIZ real, menos essa
+    const matrizSemEntrada = MATRIZ.filter(
+      (e) => !(e.papel === "recepcao" && e.modulo === "tpr"),
+    );
+
+    const resultado = await semearPapeisEPermissoes(matrizSemEntrada);
+    expect(resultado.removidas).toBeGreaterThanOrEqual(1);
+    expect(await existeNoBanco("recepcao", "tpr", "ver")).toBe(false);
+
+    // restaura o banco para o estado da matriz real, para não vazar para
+    // outros testes/arquivos que rodem depois deste
+    await semearPapeisEPermissoes();
+    expect(await existeNoBanco("recepcao", "tpr", "ver")).toBe(true);
+  });
+});
