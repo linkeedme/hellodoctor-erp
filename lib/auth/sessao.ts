@@ -18,6 +18,34 @@ export type SessaoAtiva = {
   clinicasDisponiveis: ClinicaDisponivel[];
 };
 
+/**
+ * Um usuário só pode ativar clínica onde é membro. Sem esta validação, um
+ * cookie forjado apontaria o set_config do RLS para outro tenant, com
+ * permissão total — o vazamento perfeito, porque o banco obedeceria.
+ */
+export function validarClinicaDisponivel(
+  clinicaId: string,
+  disponiveis: ClinicaDisponivel[],
+): void {
+  if (!disponiveis.some((c) => c.id === clinicaId)) {
+    throw new Error("Clínica não disponível para este usuário");
+  }
+}
+
+/**
+ * Resolve qual clínica fica ativa a partir do que veio no cookie.
+ * Cookie ausente, desconhecido ou adulterado degrada para a primeira
+ * clínica legítima — nunca para a clínica pedida.
+ */
+export function escolherClinicaAtiva(
+  valorDoCookie: string | undefined,
+  disponiveis: ClinicaDisponivel[],
+): ClinicaDisponivel | null {
+  if (disponiveis.length === 0) return null;
+  const pedida = disponiveis.find((c) => c.id === valorDoCookie);
+  return pedida ?? disponiveis[0] ?? null;
+}
+
 export async function obterSessao(): Promise<SessaoAtiva | null> {
   const supabase = await clienteSupabaseServidor();
   const { data } = await supabase.auth.getUser();
@@ -27,13 +55,11 @@ export async function obterSessao(): Promise<SessaoAtiva | null> {
   if (!usuario) return null;
 
   const disponiveis = await resolverClinicasDoUsuario(usuario.id);
-  if (disponiveis.length === 0) return null;
 
   const armazem = await cookies();
   const pedida = armazem.get(COOKIE_CLINICA)?.value;
-  const primeiraDisponivel = disponiveis[0];
-  if (!primeiraDisponivel) return null;
-  const escolhida = disponiveis.find((c) => c.id === pedida) ?? primeiraDisponivel;
+  const escolhida = escolherClinicaAtiva(pedida, disponiveis);
+  if (!escolhida) return null;
 
   const papel = await resolverPapel(usuario.id, escolhida.id);
   if (!papel) return null;
@@ -54,9 +80,8 @@ export async function exigirSessao(): Promise<SessaoAtiva> {
 
 export async function definirClinicaAtiva(clinicaId: string): Promise<void> {
   const sessao = await exigirSessao();
-  if (!sessao.clinicasDisponiveis.some((c) => c.id === clinicaId)) {
-    throw new Error("Clínica não disponível para este usuário");
-  }
+  validarClinicaDisponivel(clinicaId, sessao.clinicasDisponiveis);
+
   const armazem = await cookies();
   armazem.set(COOKIE_CLINICA, clinicaId, {
     httpOnly: true,
