@@ -12,7 +12,8 @@
     "db:migrate": "tsx scripts/db-migrate.ts",
     "db:seed": "tsx --conditions=react-server scripts/db-seed.ts",
     "test:rls-smoke": "vitest run tests/rls-smoke",
-    "test:visibilidade-paciente": "vitest run tests/rls-smoke/visibilidade-paciente.test.ts"
+    "test:visibilidade-paciente": "vitest run tests/rls-smoke/visibilidade-paciente.test.ts",
+    "test:isolamento-tenant": "vitest run tests/isolamento-tenant"
   },
   "dependencies": {
     "@supabase/ssr": "0.5.2",
