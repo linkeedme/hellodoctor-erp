@@ -81,6 +81,11 @@ export interface TabelaPermissao {
   operacao: OperacaoPermissao;
 }
 
+export interface TabelaProcedimentoConselhoAutorizado {
+  procedimento_id: string;
+  conselho: ConselhoProfissional;
+}
+
 export interface BancoHelloDoctor {
   clinica: TabelaClinica;
   unidade: TabelaUnidade;
@@ -90,4 +95,5 @@ export interface BancoHelloDoctor {
   politica_visibilidade_paciente: TabelaPoliticaVisibilidadePaciente;
   papel: TabelaPapel;
   permissao: TabelaPermissao;
+  procedimento_conselho_autorizado: TabelaProcedimentoConselhoAutorizado;
 }
