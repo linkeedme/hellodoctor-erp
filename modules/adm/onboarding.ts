@@ -1,5 +1,6 @@
 import "server-only";
 import { comServico } from "@/db/onboarding";
+import { exigirUsuarioAutenticado } from "@/lib/auth/sessao";
 import { EsquemaOnboarding } from "./schema";
 
 export class CnpjDuplicado extends Error {
@@ -23,9 +24,16 @@ function ehViolacaoDeCnpjUnico(erro: unknown): boolean {
  *
  * Cria a clínica, a unidade principal e o primeiro membro (papel "dona"),
  * numa única transação: ou o tenant nasce completo, ou não nasce.
+ *
+ * O `usuarioId` do primeiro membro vem de `exigirUsuarioAutenticado()`, nunca
+ * do payload: aceitar um `usuarioId` cru do chamador permitiria criar uma
+ * clínica e amarrar o papel de "dona" à identidade de qualquer pessoa cujo
+ * `usuario.id` fosse conhecido ou adivinhado — a mesma classe de falha que
+ * `comClinicaDaSessao` fecha no eixo do tenant, aqui no eixo da identidade.
  */
 export async function criarClinica(entrada: unknown) {
   const dados = EsquemaOnboarding.parse(entrada);
+  const usuario = await exigirUsuarioAutenticado();
 
   return comServico((db) =>
     db.transaction().execute(async (trx) => {
@@ -62,7 +70,7 @@ export async function criarClinica(entrada: unknown) {
 
       const membro = await trx
         .insertInto("membro")
-        .values({ clinica_id: clinica.id, usuario_id: dados.usuarioId, papel_id: papelDona.id })
+        .values({ clinica_id: clinica.id, usuario_id: usuario.id, papel_id: papelDona.id })
         .returning(["id"])
         .executeTakeFirstOrThrow();
 

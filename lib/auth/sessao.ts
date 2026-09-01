@@ -18,6 +18,15 @@ export type SessaoAtiva = {
   clinicasDisponiveis: ClinicaDisponivel[];
 };
 
+export type UsuarioAutenticado = { id: string; nome: string; email: string };
+
+async function resolverUsuarioAutenticado(): Promise<UsuarioAutenticado | null> {
+  const supabase = await clienteSupabaseServidor();
+  const { data } = await supabase.auth.getUser();
+  if (!data.user) return null;
+  return resolverUsuarioPorAuthId(data.user.id);
+}
+
 /**
  * Um usuário só pode ativar clínica onde é membro. Sem esta validação, um
  * cookie forjado apontaria o set_config do RLS para outro tenant, com
@@ -47,11 +56,7 @@ export function escolherClinicaAtiva(
 }
 
 export async function obterSessao(): Promise<SessaoAtiva | null> {
-  const supabase = await clienteSupabaseServidor();
-  const { data } = await supabase.auth.getUser();
-  if (!data.user) return null;
-
-  const usuario = await resolverUsuarioPorAuthId(data.user.id);
+  const usuario = await resolverUsuarioAutenticado();
   if (!usuario) return null;
 
   const disponiveis = await resolverClinicasDoUsuario(usuario.id);
@@ -76,6 +81,21 @@ export async function exigirSessao(): Promise<SessaoAtiva> {
   const sessao = await obterSessao();
   if (!sessao) redirect("/login");
   return sessao;
+}
+
+/**
+ * Identidade do chamador no provedor de auth, sem exigir clínica ativa.
+ * `exigirSessao()` não serve para onboarding: ela busca `clinicasDisponiveis`
+ * e falha se estiver vazia, mas quem está criando a primeira clínica ainda
+ * não é membro de nenhuma. Isto existe para que `criarClinica` (Task 3)
+ * resolva o `usuarioId` do usuário autenticado — nunca de um campo do
+ * payload, que o chamador poderia adulterar para criar clínica em nome de
+ * outra pessoa.
+ */
+export async function exigirUsuarioAutenticado(): Promise<UsuarioAutenticado> {
+  const usuario = await resolverUsuarioAutenticado();
+  if (!usuario) redirect("/login");
+  return usuario;
 }
 
 export async function definirClinicaAtiva(clinicaId: string): Promise<void> {

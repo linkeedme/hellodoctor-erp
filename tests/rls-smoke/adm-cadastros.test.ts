@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll, vi } from "vitest";
-import { readFile } from "node:fs/promises";
+import { ZodError } from "zod";
 import pg from "pg";
 
 if (!process.env.DATABASE_URL || !process.env.DATABASE_URL_SERVICO) {
@@ -25,8 +25,14 @@ const sessaoFalsa = {
   clinicasDisponiveis: [] as { id: string; razaoSocial: string }[],
 };
 
+// exigirUsuarioAutenticado() é o que criarClinica() usa pra resolver quem é
+// o chamador (achado 1 do fix round 1) — precisa do próprio mock, separado
+// de sessaoFalsa, porque no onboarding real ainda não existe clínica ativa.
+const usuarioAutenticadoFalso = { id: "", nome: "", email: "" };
+
 vi.mock("@/lib/auth/sessao", () => ({
   exigirSessao: async () => sessaoFalsa,
+  exigirUsuarioAutenticado: async () => usuarioAutenticadoFalso,
 }));
 
 const { semearPapeisEPermissoes } = await import("@/db/seed/papeis-permissoes");
@@ -40,6 +46,7 @@ const { EsquemaProfissional } = await import("@/modules/adm/schema");
 
 let servico: pg.Client;
 let usuarioId = "";
+let usuarioVitimaId = "";
 let membroClinicaA = "";
 let membroClinicaB = "";
 
@@ -81,6 +88,21 @@ beforeAll(async () => {
   if (!linhaUsuario) throw new Error("falha ao semear usuario");
   usuarioId = linhaUsuario.id;
   sessaoFalsa.usuarioId = usuarioId;
+  usuarioAutenticadoFalso.id = usuarioId;
+  usuarioAutenticadoFalso.nome = "Usuario Cadastros";
+  usuarioAutenticadoFalso.email = "cadastros@teste.local";
+
+  // "vítima" — alguém cujo usuario.id um payload malicioso poderia tentar
+  // usar para roubar a identidade do primeiro membro no onboarding.
+  const uVitima = await servico.query<{ id: string }>(
+    `insert into usuario (nome, email, auth_provider_id)
+     values ('Usuario Vitima', 'vitima-cadastros@teste.local', 'auth-adm-cadastros-vitima')
+     on conflict (auth_provider_id) do update set nome = excluded.nome
+     returning id`,
+  );
+  const linhaVitima = uVitima.rows[0];
+  if (!linhaVitima) throw new Error("falha ao semear usuario vitima");
+  usuarioVitimaId = linhaVitima.id;
 
   const papel = await servico.query<{ id: string }>(
     "select id from papel where chave = 'profissional'",
@@ -132,7 +154,6 @@ describe("regra 1 — CNPJ inválido é recusado pelo Zod, com mensagem legível
       criarClinica({
         clinica: { razaoSocial: "Clinica CNPJ Invalido", cnpj: "123" },
         nomeUnidadePrincipal: "Matriz",
-        usuarioId,
       }),
     ).rejects.toThrow(/14 dígitos/);
   });
@@ -144,7 +165,6 @@ describe("regra 2 — CNPJ duplicado é recusado sem estouro não tratado", () =
     const primeira = await criarClinica({
       clinica: { razaoSocial: "Clinica Duplicada 1", cnpj },
       nomeUnidadePrincipal: "Matriz",
-      usuarioId,
     });
     clinicasCriadasNoTeste.push(primeira.clinica.id);
 
@@ -152,7 +172,6 @@ describe("regra 2 — CNPJ duplicado é recusado sem estouro não tratado", () =
       criarClinica({
         clinica: { razaoSocial: "Clinica Duplicada 2", cnpj },
         nomeUnidadePrincipal: "Matriz",
-        usuarioId,
       }),
     ).rejects.toThrow(CnpjDuplicado);
   });
@@ -170,7 +189,7 @@ describe("regra 3 — Profissional sem vinculo é recusado", () => {
     expect(resultado.success).toBe(false);
   });
 
-  it("registrarProfissional recusa sem vinculo, antes de qualquer query", async () => {
+  it("registrarProfissional recusa sem vinculo com ZodError (erro de validação, não falha de conexão)", async () => {
     sessaoFalsa.papelChave = "dona";
     sessaoFalsa.clinicaId = CLINICA_A;
     await expect(
@@ -181,7 +200,7 @@ describe("regra 3 — Profissional sem vinculo é recusado", () => {
         uf: "RJ",
         habilitacoes: [],
       }),
-    ).rejects.toThrow();
+    ).rejects.toThrow(ZodError);
   });
 });
 
@@ -224,17 +243,30 @@ describe("regra 5 — criarClinica é o único caso legítimo de comServico", ()
     const resultado = await criarClinica({
       clinica: { razaoSocial: "Clinica Via ComServico", cnpj: "40000000000191" },
       nomeUnidadePrincipal: "Matriz",
-      usuarioId,
     });
     clinicasCriadasNoTeste.push(resultado.clinica.id);
     expect(resultado.clinica.cnpj).toBe("40000000000191");
     sessaoFalsa.clinicaId = CLINICA_A;
   });
+});
 
-  it("modules/adm/onboarding.ts documenta por que usa comServico em vez de comClinicaDaSessao", async () => {
-    const conteudo = await readFile("modules/adm/onboarding.ts", "utf8");
-    expect(conteudo).toContain("comServico");
-    expect(conteudo).toMatch(/não existe.*clinica_id/);
+describe("achado 1 (fix round 1) — criarClinica resolve o usuarioId do chamador autenticado, nunca do payload", () => {
+  it("não cria clínica em nome de outro usuário: usuarioId do payload é ignorado, membro fica com o autenticado", async () => {
+    const resultado = await criarClinica({
+      // usuarioId não existe em EsquemaOnboarding — mesmo enviando o id de
+      // outra pessoa aqui, quem deveria virar dona é usuarioAutenticadoFalso.
+      usuarioId: usuarioVitimaId,
+      clinica: { razaoSocial: "Clinica Identidade", cnpj: "50000000000191" },
+      nomeUnidadePrincipal: "Matriz",
+    });
+    clinicasCriadasNoTeste.push(resultado.clinica.id);
+
+    const linha = await servico.query<{ usuario_id: string }>(
+      "select usuario_id from membro where id = $1",
+      [resultado.membro.id],
+    );
+    expect(linha.rows[0]?.usuario_id).toBe(usuarioId);
+    expect(linha.rows[0]?.usuario_id).not.toBe(usuarioVitimaId);
   });
 });
 

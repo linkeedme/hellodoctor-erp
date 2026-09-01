@@ -16,10 +16,12 @@ export const EsquemaClinica = z.object({
 });
 export type EntradaClinica = z.infer<typeof EsquemaClinica>;
 
+// Sem usuarioId de propósito: quem vira o primeiro membro (papel "dona") é
+// resolvido de exigirUsuarioAutenticado() dentro de onboarding.ts, nunca de
+// um campo do payload — ver o comentário em criarClinica().
 export const EsquemaOnboarding = z.object({
   clinica: EsquemaClinica,
   nomeUnidadePrincipal: z.string().min(1, "Nome da unidade principal é obrigatório"),
-  usuarioId: z.string().uuid("usuarioId precisa ser um uuid válido"),
 });
 export type EntradaOnboarding = z.infer<typeof EsquemaOnboarding>;
 
