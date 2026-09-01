@@ -59,3 +59,12 @@ begin
   );
 end;
 $$ language plpgsql stable security definer set search_path = public, pg_temp;
+
+-- Backfill: toda clínica existente foi onboardada antes de criarClinica passar
+-- a gravar a política, então não tem linha nenhuma. Sem isto, a mudança acima
+-- as deixa sem enxergar paciente algum no momento do deploy. 'aberto' preserva
+-- exatamente o comportamento que elas já tinham; a falha fechada passa a valer
+-- só para linha apagada por acidente daqui para frente.
+insert into politica_visibilidade_paciente (clinica_id, modo)
+select id, 'aberto' from clinica
+on conflict (clinica_id) do nothing;

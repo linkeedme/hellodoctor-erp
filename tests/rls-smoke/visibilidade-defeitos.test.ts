@@ -62,7 +62,10 @@ describe("defeito 2: search_path fixo", () => {
       `select proconfig as config from pg_proc where proname = 'app_paciente_visivel'`,
     );
     const config = r.rows[0]?.config ?? [];
-    expect(config.some((c) => c.startsWith("search_path="))).toBe(true);
+    // valor exato, não só a presença da chave: "search_path=pg_temp, public"
+    // (ordem invertida) também casaria com startsWith("search_path=") mas
+    // reabriria o shadowing que esta correção fecha.
+    expect(config).toContain("search_path=public, pg_temp");
   });
 });
 

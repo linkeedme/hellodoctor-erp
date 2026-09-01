@@ -1,4 +1,11 @@
 -- =============================================================================
+-- RETRATO CONGELADO em 30/08/2026 — NÃO é o schema atual.
+-- Fonte viva: db/migrations/ (ver docs/estrutura-do-projeto.md, seção 4 e
+-- seção 7 item 3).
+-- A migração 0002_visibilidade_falha_fechada.sql já alterou
+-- app_paciente_visivel() depois desta data; este arquivo ainda descreve a
+-- versão anterior, com falha aberta.
+-- =============================================================================
 -- Hello Doctor — Schema inicial (Fase 0 + Fase 1 APENAS)
 -- =============================================================================
 -- Fonte: docs/superpowers/specs/2026-08-30-hello-doctor-arquitetura-design.md
