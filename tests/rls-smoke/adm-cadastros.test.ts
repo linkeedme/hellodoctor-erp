@@ -50,11 +50,21 @@ let usuarioVitimaId = "";
 let membroClinicaA = "";
 let membroClinicaB = "";
 
-// regra 2 e regra 5 chamam criarClinica() de verdade (não são fixture de id
-// fixo como CLINICA_A/B) — cada clínica criada entra aqui para ser desfeita
-// no afterAll, senão rodar a suíte de novo esbarra no cnpj único que o
-// próprio teste está provando.
+// regra 2, regra 5, achado 1 e regra 8 chamam criarClinica() de verdade (não
+// são fixture de id fixo como CLINICA_A/B) — cada clínica criada entra aqui
+// só pra limpar membro/unidade/politica_visibilidade_paciente no afterAll;
+// a própria `clinica` fica órfã (ver comentário no afterAll).
 const clinicasCriadasNoTeste: string[] = [];
+
+// criarClinica agora audita (Task 1 da Fatia 4): a clínica criada nunca mais
+// pode ser apagada, então um cnpj fixo reutilizado numa segunda execução da
+// suíte bateria em "CNPJ já cadastrado" por causa da clínica órfã da rodada
+// anterior. cnpjUnico() evita a colisão sem precisar apagar nada.
+let contadorCnpj = 0;
+function cnpjUnico(): string {
+  contadorCnpj += 1;
+  return `${Date.now()}`.slice(-10).padStart(10, "0") + String(contadorCnpj).padStart(4, "0");
+}
 
 async function contarUnidades(clinicaId: string): Promise<number> {
   const r = await servico.query<{ total: string }>(
@@ -146,7 +156,12 @@ afterAll(async () => {
     await servico.query("delete from politica_visibilidade_paciente where clinica_id = any($1)", [
       clinicasCriadasNoTeste,
     ]);
-    await servico.query("delete from clinica where id = any($1)", [clinicasCriadasNoTeste]);
+    // NÃO apaga `clinica`: desde que criarClinica passou a auditar (Task 1
+    // da Fatia 4), toda clínica criada aqui tem um evento_auditoria
+    // referenciando-a, e essa tabela não aceita DELETE (trigger append-only)
+    // nem permite apagar o pai (FK sem cascade). As clínicas ficam órfãs no
+    // banco efêmero — por isso os cnpjs abaixo usam `cnpjUnico()` em vez de
+    // valor fixo, pra suíte poder rodar de novo sem esbarrar em cnpj já usado.
   }
   await servico?.end();
 });
@@ -164,7 +179,7 @@ describe("regra 1 — CNPJ inválido é recusado pelo Zod, com mensagem legível
 
 describe("regra 2 — CNPJ duplicado é recusado sem estouro não tratado", () => {
   it("segunda clínica com o mesmo cnpj recebe CnpjDuplicado, não erro cru do driver", async () => {
-    const cnpj = "30000000000191";
+    const cnpj = cnpjUnico();
     const primeira = await criarClinica({
       clinica: { razaoSocial: "Clinica Duplicada 1", cnpj },
       nomeUnidadePrincipal: "Matriz",
@@ -243,12 +258,13 @@ describe("regra 4 — Profissional exige membro da mesma clínica", () => {
 describe("regra 5 — criarClinica é o único caso legítimo de comServico", () => {
   it("cria a clínica mesmo com a sessão apontando pra outra clínica (comServico não depende de RLS/sessão)", async () => {
     sessaoFalsa.clinicaId = "00000000-0000-0000-0000-000000000000";
+    const cnpj = cnpjUnico();
     const resultado = await criarClinica({
-      clinica: { razaoSocial: "Clinica Via ComServico", cnpj: "40000000000191" },
+      clinica: { razaoSocial: "Clinica Via ComServico", cnpj },
       nomeUnidadePrincipal: "Matriz",
     });
     clinicasCriadasNoTeste.push(resultado.clinica.id);
-    expect(resultado.clinica.cnpj).toBe("40000000000191");
+    expect(resultado.clinica.cnpj).toBe(cnpj);
     sessaoFalsa.clinicaId = CLINICA_A;
   });
 });
@@ -259,7 +275,7 @@ describe("achado 1 (fix round 1) — criarClinica resolve o usuarioId do chamado
       // usuarioId não existe em EsquemaOnboarding — mesmo enviando o id de
       // outra pessoa aqui, quem deveria virar dona é usuarioAutenticadoFalso.
       usuarioId: usuarioVitimaId,
-      clinica: { razaoSocial: "Clinica Identidade", cnpj: "50000000000191" },
+      clinica: { razaoSocial: "Clinica Identidade", cnpj: cnpjUnico() },
       nomeUnidadePrincipal: "Matriz",
     });
     clinicasCriadasNoTeste.push(resultado.clinica.id);
@@ -309,5 +325,110 @@ describe("regra 7 — unidade criada numa sessão não aparece para outra clíni
     sessaoFalsa.clinicaId = CLINICA_A;
     const unidadesDeA = await listarUnidades();
     expect(unidadesDeA.map((u) => u.id)).toContain(criada.id);
+  });
+});
+
+describe("regra 8 — cada Server Action grava evento de auditoria (RF-006, Fatia 4 Task 1)", () => {
+  async function evento(entidadeId: string) {
+    const r = await servico.query<{ acao: string; entidade: string; clinica_id: string }>(
+      "select acao, entidade, clinica_id from evento_auditoria where entidade_id = $1",
+      [entidadeId],
+    );
+    return r;
+  }
+
+  it("criarUnidade grava exatamente um evento de criação de unidade", async () => {
+    sessaoFalsa.papelChave = "dona";
+    sessaoFalsa.clinicaId = CLINICA_A;
+
+    const unidade = await criarUnidade({ nome: "Unidade Auditada" });
+
+    const r = await evento(unidade.id);
+    expect(r.rowCount).toBe(1);
+    expect(r.rows[0]?.acao).toBe("criacao");
+    expect(r.rows[0]?.entidade).toBe("unidade");
+    expect(r.rows[0]?.clinica_id).toBe(CLINICA_A);
+  });
+
+  it("adicionarMembro grava exatamente um evento de criação de membro", async () => {
+    sessaoFalsa.papelChave = "dona";
+    sessaoFalsa.clinicaId = CLINICA_A;
+
+    // adicionarMembro faz INSERT puro, sem ON CONFLICT — rodar a suíte de
+    // novo esbarraria no unique (clinica_id, usuario_id) se a linha da
+    // execução anterior ainda existisse. membro não é append-only (só
+    // evento_auditoria é), então apagar antes é seguro e idempotente.
+    await servico.query("delete from membro where clinica_id = $1 and usuario_id = $2", [
+      CLINICA_A,
+      usuarioVitimaId,
+    ]);
+    const membro = await adicionarMembro({ usuarioId: usuarioVitimaId, papelChave: "recepcao" });
+
+    const r = await evento(membro.id);
+    expect(r.rowCount).toBe(1);
+    expect(r.rows[0]?.acao).toBe("criacao");
+    expect(r.rows[0]?.entidade).toBe("membro");
+    expect(r.rows[0]?.clinica_id).toBe(CLINICA_A);
+  });
+
+  it("registrarProfissional grava exatamente um evento de criação de profissional", async () => {
+    sessaoFalsa.papelChave = "dona";
+    sessaoFalsa.clinicaId = CLINICA_A;
+
+    const papel = await servico.query<{ id: string }>(
+      "select id from papel where chave = 'profissional'",
+    );
+    const papelId = papel.rows[0]?.id;
+    if (!papelId) throw new Error("papel 'profissional' não semeado");
+
+    const usuarioNovo = await servico.query<{ id: string }>(
+      `insert into usuario (nome, email, auth_provider_id)
+       values ('Usuario Auditoria Profissional', 'auditoria-prof@teste.local', 'auth-adm-cadastros-auditoria-prof')
+       on conflict (auth_provider_id) do update set nome = excluded.nome
+       returning id`,
+    );
+    const usuarioNovoId = usuarioNovo.rows[0]?.id;
+    if (!usuarioNovoId) throw new Error("falha ao semear usuario");
+
+    const membroNovo = await servico.query<{ id: string }>(
+      `insert into membro (clinica_id, usuario_id, papel_id) values ($1, $2, $3)
+       on conflict (clinica_id, usuario_id) do update set papel_id = excluded.papel_id
+       returning id`,
+      [CLINICA_A, usuarioNovoId, papelId],
+    );
+    const membroNovoId = membroNovo.rows[0]?.id;
+    if (!membroNovoId) throw new Error("falha ao semear membro");
+    // profissional.membro_id é unique: garante que uma execução anterior
+    // desta mesma suíte não deixou um profissional já ligado a este membro.
+    await servico.query("delete from profissional where membro_id = $1", [membroNovoId]);
+
+    const profissional = await registrarProfissional({
+      membroId: membroNovoId,
+      conselho: "CRM",
+      numeroConselho: "111222",
+      uf: "RJ",
+      habilitacoes: [],
+      vinculo: "clt",
+    });
+
+    const r = await evento(profissional.id);
+    expect(r.rowCount).toBe(1);
+    expect(r.rows[0]?.acao).toBe("criacao");
+    expect(r.rows[0]?.entidade).toBe("profissional");
+    expect(r.rows[0]?.clinica_id).toBe(CLINICA_A);
+  });
+
+  it("criarClinica grava exatamente um evento de criação de clínica, com o id recém-criado", async () => {
+    const resultado = await criarClinica({
+      clinica: { razaoSocial: "Clinica Auditada", cnpj: cnpjUnico() },
+      nomeUnidadePrincipal: "Matriz",
+    });
+    clinicasCriadasNoTeste.push(resultado.clinica.id);
+
+    const r = await evento(resultado.clinica.id);
+    expect(r.rowCount).toBe(1);
+    expect(r.rows[0]?.acao).toBe("criacao");
+    expect(r.rows[0]?.entidade).toBe("clinica");
+    expect(r.rows[0]?.clinica_id).toBe(resultado.clinica.id);
   });
 });

@@ -1,6 +1,7 @@
 import "server-only";
 import { comServico } from "@/db/onboarding";
 import { exigirUsuarioAutenticado } from "@/lib/auth/sessao";
+import { registrarEvento } from "@/lib/auditoria/registrar";
 import { EsquemaOnboarding } from "./schema";
 
 export class CnpjDuplicado extends Error {
@@ -52,6 +53,20 @@ export async function criarClinica(entrada: unknown) {
         if (ehViolacaoDeCnpjUnico(erro)) throw new CnpjDuplicado(dados.clinica.cnpj);
         throw erro;
       }
+
+      // Não existe sessão nem clinica_id antes deste ponto — o evento usa o
+      // par recém-criado (id da clínica, usuário autenticado) como contexto,
+      // não uma SessaoAtiva. A ação registrada é a criação do tenant.
+      await registrarEvento(
+        trx,
+        { clinicaId: clinica.id, usuarioId: usuario.id },
+        {
+          acao: "criacao",
+          entidade: "clinica",
+          entidadeId: clinica.id,
+          valorDepois: { razaoSocial: clinica.razao_social, cnpj: clinica.cnpj },
+        },
+      );
 
       const unidade = await trx
         .insertInto("unidade")

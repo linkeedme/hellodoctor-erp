@@ -2,6 +2,7 @@
 
 import { comClinicaDaSessao } from "@/db/com-sessao";
 import { exigirPermissao } from "@/lib/autorizacao/verificar";
+import { registrarEvento } from "@/lib/auditoria/registrar";
 import { EsquemaMembro, EsquemaProfissional, EsquemaUnidade } from "./schema";
 import { criarClinica as criarClinicaOnboarding } from "./onboarding";
 
@@ -22,11 +23,18 @@ export async function criarUnidade(entrada: unknown) {
   const dados = EsquemaUnidade.parse(entrada);
   await exigirPermissao("adm", "criar");
   return comClinicaDaSessao(async (trx, sessao) => {
-    return trx
+    const unidade = await trx
       .insertInto("unidade")
       .values({ clinica_id: sessao.clinicaId, nome: dados.nome, endereco: dados.endereco })
       .returning(["id", "nome"])
       .executeTakeFirstOrThrow();
+    await registrarEvento(trx, sessao, {
+      acao: "criacao",
+      entidade: "unidade",
+      entidadeId: unidade.id,
+      valorDepois: { nome: dados.nome },
+    });
+    return unidade;
   });
 }
 
@@ -43,11 +51,18 @@ export async function adicionarMembro(entrada: unknown) {
       throw new Error(`Papel desconhecido: ${dados.papelChave}`);
     }
 
-    return trx
+    const membro = await trx
       .insertInto("membro")
       .values({ clinica_id: sessao.clinicaId, usuario_id: dados.usuarioId, papel_id: papel.id })
       .returning(["id"])
       .executeTakeFirstOrThrow();
+    await registrarEvento(trx, sessao, {
+      acao: "criacao",
+      entidade: "membro",
+      entidadeId: membro.id,
+      valorDepois: { usuarioId: dados.usuarioId, papelChave: dados.papelChave },
+    });
+    return membro;
   });
 }
 
@@ -69,7 +84,7 @@ export async function registrarProfissional(entrada: unknown) {
       throw new Error("Membro não encontrado nesta clínica");
     }
 
-    return trx
+    const profissional = await trx
       .insertInto("profissional")
       .values({
         clinica_id: sessao.clinicaId,
@@ -82,5 +97,17 @@ export async function registrarProfissional(entrada: unknown) {
       })
       .returning(["id"])
       .executeTakeFirstOrThrow();
+    await registrarEvento(trx, sessao, {
+      acao: "criacao",
+      entidade: "profissional",
+      entidadeId: profissional.id,
+      valorDepois: {
+        conselho: dados.conselho,
+        numeroConselho: dados.numeroConselho,
+        uf: dados.uf,
+        vinculo: dados.vinculo,
+      },
+    });
+    return profissional;
   });
 }

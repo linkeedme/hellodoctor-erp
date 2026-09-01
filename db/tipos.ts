@@ -2,6 +2,9 @@ import type { Generated, ColumnType } from "kysely";
 
 type Criado = ColumnType<Date, Date | undefined, never>;
 
+/** Coluna nula sem default no banco: opcional no insert, sempre presente na leitura (pode ser null). */
+type Opcional<T> = ColumnType<T | null, T | null | undefined, T | null>;
+
 export interface TabelaClinica {
   id: Generated<string>;
   razao_social: string;
@@ -86,6 +89,20 @@ export interface TabelaProcedimentoConselhoAutorizado {
   conselho: ConselhoProfissional;
 }
 
+export interface TabelaEventoAuditoria {
+  id: Generated<string>;
+  clinica_id: string;
+  usuario_id: Opcional<string>;
+  acao: string;
+  entidade: string;
+  entidade_id: Opcional<string>;
+  valor_antes: Opcional<Record<string, unknown>>;
+  valor_depois: Opcional<Record<string, unknown>>;
+  ip: Opcional<string>;
+  request_id: Opcional<string>;
+  criado_em: Criado;
+}
+
 export interface BancoHelloDoctor {
   clinica: TabelaClinica;
   unidade: TabelaUnidade;
@@ -96,4 +113,5 @@ export interface BancoHelloDoctor {
   papel: TabelaPapel;
   permissao: TabelaPermissao;
   procedimento_conselho_autorizado: TabelaProcedimentoConselhoAutorizado;
+  evento_auditoria: TabelaEventoAuditoria;
 }

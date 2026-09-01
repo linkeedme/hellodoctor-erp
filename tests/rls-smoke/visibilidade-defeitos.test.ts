@@ -79,7 +79,11 @@ describe("onboarding cria a política de visibilidade (senão toda clínica nova
     ]);
     await servico.query("delete from membro where clinica_id = $1", [clinicaCriadaId]);
     await servico.query("delete from unidade where clinica_id = $1", [clinicaCriadaId]);
-    await servico.query("delete from clinica where id = $1", [clinicaCriadaId]);
+    // NÃO apaga `clinica`: criarClinica audita (Task 1 da Fatia 4) e o
+    // evento_auditoria gerado referencia esta clínica — a tabela é
+    // append-only (trigger recusa DELETE) e não há cascade na FK, então a
+    // clínica fica órfã de propósito. Por isso o cnpj abaixo é único por
+    // execução, pra suíte poder rodar de novo sem "CNPJ já cadastrado".
   });
 
   it("criarClinica cria a linha de politica_visibilidade_paciente, em modo 'aberto', na mesma transação", async () => {
@@ -98,7 +102,10 @@ describe("onboarding cria a política de visibilidade (senão toda clínica nova
     usuarioAutenticadoFalso.email = "visibilidade@teste.local";
 
     const resultado = await criarClinica({
-      clinica: { razaoSocial: "Clinica Nasce Com Politica", cnpj: "60000000000191" },
+      clinica: {
+        razaoSocial: "Clinica Nasce Com Politica",
+        cnpj: `${Date.now()}`.slice(-10).padStart(10, "0") + "0001",
+      },
       nomeUnidadePrincipal: "Matriz",
     });
     clinicaCriadaId = resultado.clinica.id;
