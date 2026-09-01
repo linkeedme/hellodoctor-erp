@@ -11,9 +11,25 @@ import { obterRequestId } from "@/lib/contexto-request";
  */
 export type ContextoAuditoria = { clinicaId: string; usuarioId: string };
 
+/**
+ * Ações e entidades conhecidas — não `string` solto. Um typo como
+ * `"unidadee"` passaria pelo compilador e viraria um evento que nenhuma
+ * consulta de auditoria futura vai encontrar. Sem escape para string
+ * arbitrária: uma entidade nova precisa entrar aqui, de propósito.
+ */
+export type AcaoAuditoria = "leitura" | "criacao" | "atualizacao";
+export type EntidadeAuditavel =
+  | "clinica"
+  | "unidade"
+  | "membro"
+  | "profissional"
+  | "paciente"
+  | "ficha"
+  | "evolucao";
+
 export type EventoAuditoria = {
-  acao: string;
-  entidade: string;
+  acao: AcaoAuditoria;
+  entidade: EntidadeAuditavel;
   entidadeId?: string;
   valorAntes?: Record<string, unknown>;
   valorDepois?: Record<string, unknown>;

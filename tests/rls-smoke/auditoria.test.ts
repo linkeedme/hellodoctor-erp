@@ -133,7 +133,7 @@ describe("lerAuditado", () => {
     expect(await contarEventos(entidadeId)).toBe(0);
   });
 
-  it("se a gravação do evento falhar, a leitura não retorna dado (nem chega a rodar)", async () => {
+  it("se a gravação do evento falhar, a leitura não retorna dado", async () => {
     const { lerAuditado } = await import("@/lib/auditoria/ler-auditado");
     // "nao-e-um-uuid" não é um uuid válido: o INSERT em evento_auditoria
     // (entidade_id é `uuid`) falha de verdade no banco — não é mock.
@@ -146,10 +146,11 @@ describe("lerAuditado", () => {
       }),
     ).rejects.toThrow();
 
-    // a gravação falha ANTES da consulta rodar (lerAuditado grava e só
-    // depois lê, na mesma transação) — "a leitura não acontece", não
-    // apenas "não retorna dado".
-    expect(consultaExecutou).toBe(false);
+    // lerAuditado lê primeiro e só depois grava o evento (fix round 1,
+    // achado 1) — a consulta roda normalmente, mas o resultado nunca chega
+    // ao chamador: o INSERT do evento falha e a transação inteira reverte,
+    // inclusive o valor de retorno.
+    expect(consultaExecutou).toBe(true);
   });
 
   it("dois lerAuditado seguidos geram dois eventos, não um", async () => {
@@ -160,6 +161,32 @@ describe("lerAuditado", () => {
     await lerAuditado("paciente", entidadeId, async () => 2);
 
     expect(await contarEventos(entidadeId)).toBe(2);
+  });
+
+  // fix round 1, achado 1: policies de ficha/evolucao/medida/foto/atendimento/
+  // paciente combinam clinica_id com app_paciente_visivel(...) — o segundo
+  // fator pode negar a linha em silêncio (SELECT vazio, sem lançar exceção).
+  // Gravar o evento ANTES da consulta registraria "leitura" de um dado que o
+  // RLS bloqueou sem ninguém nunca ter visto. `encontrado` registra o que de
+  // fato aconteceu.
+  it("grava encontrado:false quando a consulta não acha nada, e encontrado:true quando acha", async () => {
+    const { lerAuditado } = await import("@/lib/auditoria/ler-auditado");
+    const idNaoAchado = randomUUID();
+    const idAchado = randomUUID();
+
+    await lerAuditado("paciente", idNaoAchado, async () => null);
+    await lerAuditado("paciente", idAchado, async () => ({ nome: "Fulano" }));
+
+    const rNaoAchado = await servico.query<{ valor_depois: { encontrado: boolean } }>(
+      "select valor_depois from evento_auditoria where entidade_id = $1",
+      [idNaoAchado],
+    );
+    const rAchado = await servico.query<{ valor_depois: { encontrado: boolean } }>(
+      "select valor_depois from evento_auditoria where entidade_id = $1",
+      [idAchado],
+    );
+    expect(rNaoAchado.rows[0]?.valor_depois).toEqual({ encontrado: false });
+    expect(rAchado.rows[0]?.valor_depois).toEqual({ encontrado: true });
   });
 });
 

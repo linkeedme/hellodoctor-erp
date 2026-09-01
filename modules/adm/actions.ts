@@ -32,7 +32,7 @@ export async function criarUnidade(entrada: unknown) {
       acao: "criacao",
       entidade: "unidade",
       entidadeId: unidade.id,
-      valorDepois: { nome: dados.nome },
+      valorDepois: { nome: dados.nome, endereco: dados.endereco },
     });
     return unidade;
   });
@@ -105,6 +105,7 @@ export async function registrarProfissional(entrada: unknown) {
         conselho: dados.conselho,
         numeroConselho: dados.numeroConselho,
         uf: dados.uf,
+        habilitacoes: dados.habilitacoes,
         vinculo: dados.vinculo,
       },
     });

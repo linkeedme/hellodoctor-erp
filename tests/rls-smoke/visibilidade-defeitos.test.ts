@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll, vi } from "vitest";
 import pg from "pg";
+import { cnpjUnico } from "./cnpj-unico";
 
 if (!process.env.DATABASE_URL || !process.env.DATABASE_URL_SERVICO) {
   throw new Error(
@@ -102,10 +103,7 @@ describe("onboarding cria a política de visibilidade (senão toda clínica nova
     usuarioAutenticadoFalso.email = "visibilidade@teste.local";
 
     const resultado = await criarClinica({
-      clinica: {
-        razaoSocial: "Clinica Nasce Com Politica",
-        cnpj: `${Date.now()}`.slice(-10).padStart(10, "0") + "0001",
-      },
+      clinica: { razaoSocial: "Clinica Nasce Com Politica", cnpj: cnpjUnico() },
       nomeUnidadePrincipal: "Matriz",
     });
     clinicaCriadaId = resultado.clinica.id;

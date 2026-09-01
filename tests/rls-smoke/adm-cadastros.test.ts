@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll, vi } from "vitest";
 import { ZodError } from "zod";
 import pg from "pg";
+import { cnpjUnico } from "./cnpj-unico";
 
 if (!process.env.DATABASE_URL || !process.env.DATABASE_URL_SERVICO) {
   throw new Error(
@@ -55,16 +56,6 @@ let membroClinicaB = "";
 // só pra limpar membro/unidade/politica_visibilidade_paciente no afterAll;
 // a própria `clinica` fica órfã (ver comentário no afterAll).
 const clinicasCriadasNoTeste: string[] = [];
-
-// criarClinica agora audita (Task 1 da Fatia 4): a clínica criada nunca mais
-// pode ser apagada, então um cnpj fixo reutilizado numa segunda execução da
-// suíte bateria em "CNPJ já cadastrado" por causa da clínica órfã da rodada
-// anterior. cnpjUnico() evita a colisão sem precisar apagar nada.
-let contadorCnpj = 0;
-function cnpjUnico(): string {
-  contadorCnpj += 1;
-  return `${Date.now()}`.slice(-10).padStart(10, "0") + String(contadorCnpj).padStart(4, "0");
-}
 
 async function contarUnidades(clinicaId: string): Promise<number> {
   const r = await servico.query<{ total: string }>(
