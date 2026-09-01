@@ -12,7 +12,9 @@ Não foi construído nesta fatia porque não existe nenhum call-site ainda, e de
 
 ## Bloqueiam o primeiro deploy
 
-**2. Role dedicado com `BYPASSRLS`** — *entra no "pronto para deploy", não é nota de rodapé.*
+**2. ~~Role dedicado com `BYPASSRLS`~~ — RESOLVIDO.** O `postgres` do Supabase não é superusuário mas tem `BYPASSRLS`, que é exatamente o que `comServico` precisa. E o `app_user` (sem BYPASSRLS) foi criado lá, com a suíte de isolamento rodando contra o Supabase real.
+
+> Texto original:
 
 `DATABASE_URL_SERVICO` aponta hoje para o superusuário do Postgres, que ignora RLS por ser superusuário. **No Supabase gerenciado não existe superusuário.** Como criar uma clínica nova precisa ignorar o RLS (não há `clinica_id` para setar antes de a clínica existir), o onboarding de tenant (ADM-01 / RF-012) **quebra em produção** sem um role real com `BYPASSRLS` criado antes.
 
@@ -40,3 +42,23 @@ Na Fatia 1 essa pergunta expôs, com os testes verdes nos três casos:
 - a regra de lint cobria 1 de 12 casos de bypass;
 - 3 de 4 asserções de isolamento passavam com o `set_config` sabotado;
 - a validação que impede cookie forjado de ativar clínica alheia não tinha teste nenhum.
+
+---
+
+# Pendências abertas ao fim da Fatia 3
+
+## Para quando o módulo de prontuário (PRT) existir
+
+**A cadeia de proteção não é provada ponta a ponta.** Hoje ela está provada em nível de SQL e helper: `comClinicaDaSessao` → `set_config` → policy → `app_paciente_visivel` → linha, com as 8 tabelas cobertas individualmente. Falta o teste que sai de uma **rota HTTP real** e chega na linha do banco — impossível hoje, porque nenhuma Server Action lê prontuário ainda.
+
+**A ordem `validar → exigirPermissao → comClinicaDaSessao` continua sendo convenção.** A regra de lint impede usar a conexão errada, mas não força a ordem. Quando o PRT nascer, vale considerar uma regra que exija `exigirPermissao` antes de `comClinicaDaSessao` em todo arquivo `modules/*/actions.ts`.
+
+## Barata, faz sentido a qualquer momento
+
+**Teste de cross-tenant em `modules/cat/__tests__/escopo.test.ts`.** Hoje ele testa procedimento inexistente; falta o caso de procedimento que **existe em outra clínica**. A policy protege (verificado), mas sem esse teste a prova depende de ausência de dado, não da regra.
+
+## Herdadas e ainda abertas
+
+**`exigirSessao()` roda duas vezes por escrita** — uma em `exigirPermissao`, outra em `comClinicaDaSessao`. São 6 queries de sessão antes de tocar dado de domínio. Não é bug (falha fechada nas duas), é latência que cresce com o número de módulos.
+
+**Dois warnings de `import/no-anonymous-default-export`** em `eslint.config.mjs` e nas regras de lint. Custo zero de corrigir.
