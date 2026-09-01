@@ -1,18 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { readFile } from "node:fs/promises";
-import { execFile } from "node:child_process";
-import { promisify } from "node:util";
-
-const exec = promisify(execFile);
-
-async function lintarFixture(caminho: string): Promise<{ saiuComErro: boolean }> {
-  try {
-    await exec("npx", ["eslint", caminho, "--format", "json"]);
-    return { saiuComErro: false };
-  } catch {
-    return { saiuComErro: true };
-  }
-}
+import { lintarArquivo as lintarFixture } from "./lintar-arquivo";
 
 // A regra de lint local/sem-banco-no-cliente é sintática por arquivo: ela
 // enxerga apenas o especificador do import, não o grafo de módulos. Um

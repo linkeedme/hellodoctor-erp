@@ -1,23 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { execFile } from "node:child_process";
-import { promisify } from "node:util";
-
-const exec = promisify(execFile);
-
-async function lintarFixture(
-  caminho: string,
-): Promise<{ saiuComErro: boolean; saida: string }> {
-  try {
-    const r = await exec("npx", [
-      "eslint",
-      caminho,
-      "--format", "json",
-    ]);
-    return { saiuComErro: false, saida: r.stdout };
-  } catch (e) {
-    return { saiuComErro: true, saida: (e as { stdout?: string }).stdout ?? "" };
-  }
-}
+import { lintarArquivo as lintarFixture } from "./lintar-arquivo";
 
 describe("barreira de acesso a dado (RF-002)", () => {
   it("recusa import de cliente de banco em componente client", async () => {

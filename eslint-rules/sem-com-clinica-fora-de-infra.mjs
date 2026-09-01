@@ -37,6 +37,15 @@ function importaComClinicaNomeado(especificadores) {
   });
 }
 
+// `import * as x from "db/client"` não tem especificador nomeado — não tem
+// como inspecionar se `x.comClinica` é de fato usado sem seguir o grafo de
+// uso. Mais conservador (e correto, no espírito do resto da regra): barrar
+// o namespace inteiro fora de infra, porque importar `db/client` por completo
+// ali não tem uso legítimo.
+function importaNamespaceDoClient(especificadores) {
+  return (especificadores ?? []).some((s) => s.type === "ImportNamespaceSpecifier");
+}
+
 export default {
   meta: {
     type: "problem",
@@ -56,7 +65,10 @@ export default {
 
     return {
       ImportDeclaration(node) {
-        if (ehFonteDoClient(node.source.value) && importaComClinicaNomeado(node.specifiers)) {
+        if (
+          ehFonteDoClient(node.source.value) &&
+          (importaComClinicaNomeado(node.specifiers) || importaNamespaceDoClient(node.specifiers))
+        ) {
           context.report({ node, messageId: "proibido" });
         }
       },
