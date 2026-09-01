@@ -20,7 +20,12 @@ vi.mock("server-only", () => ({}));
 
 const { comClinica, db } = await import("../../db/client");
 
-const CLINICA_C = "33333333-3333-3333-3333-333333333333";
+// CLINICA_C tinha o mesmo id+cnpj de tests/rls-smoke/sessao.test.ts. O
+// arbiter do ON CONFLICT abaixo é a coluna `id`; se as duas transações
+// concorrentes colidem primeiro no índice de `cnpj` (constraint
+// clinica_cnpj_unico), o erro escapa do ON CONFLICT e propaga — já causou
+// falha intermitente com os dois arquivos rodando em paralelo no Vitest.
+const CLINICA_C = "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee";
 const CLINICA_D = "44444444-4444-4444-4444-444444444444";
 const CLINICA_INEXISTENTE = "99999999-9999-9999-9999-999999999999";
 const USUARIO_1 = "55555555-5555-5555-5555-555555555555";
@@ -32,7 +37,7 @@ beforeAll(async () => {
   await servico.connect();
   await servico.query(
     `insert into clinica (id, razao_social, cnpj) values
-       ($1, 'Clinica C', '33333333000191'),
+       ($1, 'Clinica C', '99999999000191'),
        ($2, 'Clinica D', '44444444000191')
      on conflict (id) do nothing`,
     [CLINICA_C, CLINICA_D],
