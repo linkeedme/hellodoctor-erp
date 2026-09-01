@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "lint": "eslint . --ignore-pattern tests/lint/fixtures/componente-cliente-proibido.tsx --ignore-pattern tests/lint/fixtures/import-relativo-escapa.tsx --ignore-pattern tests/lint/fixtures/import-dinamico-escapa.ts --ignore-pattern tests/lint/fixtures/reexport-escapa.ts --ignore-pattern tests/lint/fixtures/prologo-diretivas-escapa.tsx --ignore-pattern tests/lint/fixtures/server-action-usa-com-clinica.ts --ignore-pattern tests/lint/fixtures/server-action-usa-com-clinica-namespace.ts",
+    "lint": "eslint . --ignore-pattern tests/lint/fixtures/componente-cliente-proibido.tsx --ignore-pattern tests/lint/fixtures/import-relativo-escapa.tsx --ignore-pattern tests/lint/fixtures/import-dinamico-escapa.ts --ignore-pattern tests/lint/fixtures/reexport-escapa.ts --ignore-pattern tests/lint/fixtures/prologo-diretivas-escapa.tsx --ignore-pattern tests/lint/fixtures/server-action-usa-com-clinica.ts --ignore-pattern tests/lint/fixtures/server-action-usa-com-clinica-namespace.ts --ignore-pattern tests/lint/fixtures/server-action-usa-com-servico.ts --ignore-pattern tests/lint/fixtures/server-action-usa-com-servico-namespace.ts --ignore-pattern tests/lint/fixtures/server-action-usa-com-servico-dinamico.ts",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "db:efemero": "bash scripts/db-efemero.sh",
