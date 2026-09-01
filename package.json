@@ -11,7 +11,8 @@
     "db:efemero": "bash scripts/db-efemero.sh",
     "db:migrate": "tsx scripts/db-migrate.ts",
     "db:seed": "tsx --conditions=react-server scripts/db-seed.ts",
-    "test:rls-smoke": "vitest run tests/rls-smoke"
+    "test:rls-smoke": "vitest run tests/rls-smoke",
+    "test:visibilidade-paciente": "vitest run tests/rls-smoke/visibilidade-paciente.test.ts"
   },
   "dependencies": {
     "@supabase/ssr": "0.5.2",
