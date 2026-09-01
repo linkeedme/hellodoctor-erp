@@ -57,6 +57,14 @@ export interface TabelaMembro {
   criado_em: Criado;
 }
 
+export type ModoVisibilidadePaciente = "isolado" | "aberto" | "restrito";
+
+export interface TabelaPoliticaVisibilidadePaciente {
+  clinica_id: string;
+  modo: Generated<ModoVisibilidadePaciente>;
+  atualizado_em: Criado;
+}
+
 export interface TabelaPapel {
   id: Generated<string>;
   chave: string;
@@ -79,6 +87,7 @@ export interface BancoHelloDoctor {
   usuario: TabelaUsuario;
   membro: TabelaMembro;
   profissional: TabelaProfissional;
+  politica_visibilidade_paciente: TabelaPoliticaVisibilidadePaciente;
   papel: TabelaPapel;
   permissao: TabelaPermissao;
 }

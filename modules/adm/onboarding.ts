@@ -74,6 +74,13 @@ export async function criarClinica(entrada: unknown) {
         .returning(["id"])
         .executeTakeFirstOrThrow();
 
+      // app_paciente_visivel() nega por omissão (falha fechada): sem esta
+      // linha, a clínica recém-criada não enxergaria paciente nenhum.
+      await trx
+        .insertInto("politica_visibilidade_paciente")
+        .values({ clinica_id: clinica.id, modo: "aberto" })
+        .execute();
+
       return { clinica, unidade, membro };
     }),
   );

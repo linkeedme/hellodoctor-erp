@@ -143,6 +143,9 @@ afterAll(async () => {
     await servico.query("delete from unidade where clinica_id = any($1)", [
       clinicasCriadasNoTeste,
     ]);
+    await servico.query("delete from politica_visibilidade_paciente where clinica_id = any($1)", [
+      clinicasCriadasNoTeste,
+    ]);
     await servico.query("delete from clinica where id = any($1)", [clinicasCriadasNoTeste]);
   }
   await servico?.end();
