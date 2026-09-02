@@ -5,6 +5,10 @@ import { exigirPermissao } from "@/lib/autorizacao/verificar";
 import { registrarEvento } from "@/lib/auditoria/registrar";
 import { EsquemaMembro, EsquemaProfissional, EsquemaUnidade } from "./schema";
 import { criarClinica as criarClinicaOnboarding } from "./onboarding";
+import {
+  registrarConsentimento as registrarConsentimentoModulo,
+  revogarConsentimento as revogarConsentimentoModulo,
+} from "./consentimento";
 
 /**
  * Criação de tenant novo — delega para modules/adm/onboarding.ts, o único
@@ -13,6 +17,19 @@ import { criarClinica as criarClinicaOnboarding } from "./onboarding";
  */
 export async function criarClinica(entrada: unknown) {
   return criarClinicaOnboarding(entrada);
+}
+
+/**
+ * Consentimento (RF-007/11.10) tem regra de domínio própria (versionamento
+ * de termo, congelamento da versão assinada) — delega para
+ * modules/adm/consentimento.ts, igual criarClinica delega para onboarding.ts.
+ */
+export async function registrarConsentimento(entrada: unknown) {
+  return registrarConsentimentoModulo(entrada);
+}
+
+export async function revogarConsentimento(consentimentoId: unknown) {
+  return revogarConsentimentoModulo(consentimentoId);
 }
 
 // Ordem obrigatória: valida entrada (Zod) -> exige permissão -> só então

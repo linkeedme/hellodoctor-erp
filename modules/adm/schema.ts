@@ -48,3 +48,27 @@ export const EsquemaProfissional = z.object({
   }),
 });
 export type EntradaProfissional = z.infer<typeof EsquemaProfissional>;
+
+const FINALIDADES_CONSENTIMENTO = [
+  "tratamento_clinico",
+  "uso_interno",
+  "uso_externo_marketing",
+] as const;
+const ANCORAS_CONSENTIMENTO = ["paciente", "protocolo_instancia", "atendimento", "foto"] as const;
+
+// RF-007/11.10: um consentimento é a interseção de finalidade × âncora ×
+// versão do termo. `nomeTermo` + `texto` identificam o termo e a redação
+// vigente — modules/adm/consentimento.ts decide se precisa criar termo e/ou
+// versão nova, ou reaproveitar a vigente.
+export const EsquemaConsentimento = z.object({
+  pacienteId: z.string().uuid("pacienteId precisa ser um uuid válido"),
+  finalidade: z.enum(FINALIDADES_CONSENTIMENTO, { errorMap: () => ({ message: "finalidade inválida" }) }),
+  nomeTermo: z.string().min(1, "Nome do termo é obrigatório"),
+  texto: z.string().min(1, "Texto do termo é obrigatório"),
+  ancoraTipo: z.enum(ANCORAS_CONSENTIMENTO, { errorMap: () => ({ message: "ancoraTipo inválido" }) }),
+  ancoraId: z.string().uuid("ancoraId precisa ser um uuid válido"),
+  evidencia: z.record(z.string(), z.unknown()).default({}),
+});
+export type EntradaConsentimento = z.infer<typeof EsquemaConsentimento>;
+
+export const EsquemaConsentimentoId = z.string().uuid("consentimentoId precisa ser um uuid válido");

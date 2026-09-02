@@ -89,6 +89,45 @@ export interface TabelaProcedimentoConselhoAutorizado {
   conselho: ConselhoProfissional;
 }
 
+export type FinalidadeConsentimento = "tratamento_clinico" | "uso_interno" | "uso_externo_marketing";
+export type AncoraConsentimento = "paciente" | "protocolo_instancia" | "atendimento" | "foto";
+
+export interface TabelaTermo {
+  id: Generated<string>;
+  clinica_id: string;
+  finalidade: FinalidadeConsentimento;
+  nome: string;
+  criado_em: Criado;
+}
+
+export interface TabelaTermoVersao {
+  id: Generated<string>;
+  termo_id: string;
+  texto: string;
+  hash_conteudo: string;
+  vigente_desde: Criado;
+  vigente_ate: Opcional<Date>;
+  criado_em: Criado;
+}
+
+export interface TabelaConsentimento {
+  id: Generated<string>;
+  clinica_id: string;
+  paciente_id: string;
+  finalidade: FinalidadeConsentimento;
+  ancora_tipo: AncoraConsentimento;
+  ancora_id: string;
+  termo_versao_id: string;
+  assinado_em: Criado;
+  evidencia: ColumnType<
+    Record<string, unknown>,
+    Record<string, unknown> | undefined,
+    Record<string, unknown>
+  >;
+  revogado_em: Opcional<Date>;
+  criado_em: Criado;
+}
+
 export interface TabelaEventoAuditoria {
   id: Generated<string>;
   clinica_id: string;
@@ -113,5 +152,8 @@ export interface BancoHelloDoctor {
   papel: TabelaPapel;
   permissao: TabelaPermissao;
   procedimento_conselho_autorizado: TabelaProcedimentoConselhoAutorizado;
+  termo: TabelaTermo;
+  termo_versao: TabelaTermoVersao;
+  consentimento: TabelaConsentimento;
   evento_auditoria: TabelaEventoAuditoria;
 }

@@ -17,7 +17,10 @@ export type ContextoAuditoria = { clinicaId: string; usuarioId: string };
  * consulta de auditoria futura vai encontrar. Sem escape para string
  * arbitrária: uma entidade nova precisa entrar aqui, de propósito.
  */
-export type AcaoAuditoria = "leitura" | "criacao" | "atualizacao";
+// "revogacao" é distinta de "atualizacao": revogar consentimento é um fato
+// juridicamente relevante por si (LGPD/11.10) — misturar com "atualizacao"
+// genérica esconderia esse evento de uma consulta futura que filtre por ele.
+export type AcaoAuditoria = "leitura" | "criacao" | "atualizacao" | "revogacao";
 export type EntidadeAuditavel =
   | "clinica"
   | "unidade"
@@ -25,7 +28,8 @@ export type EntidadeAuditavel =
   | "profissional"
   | "paciente"
   | "ficha"
-  | "evolucao";
+  | "evolucao"
+  | "consentimento";
 
 export type EventoAuditoria = {
   acao: AcaoAuditoria;
