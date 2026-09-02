@@ -62,3 +62,21 @@ Na Fatia 1 essa pergunta expôs, com os testes verdes nos três casos:
 **`exigirSessao()` roda duas vezes por escrita** — uma em `exigirPermissao`, outra em `comClinicaDaSessao`. São 6 queries de sessão antes de tocar dado de domínio. Não é bug (falha fechada nas duas), é latência que cresce com o número de módulos.
 
 **Dois warnings de `import/no-anonymous-default-export`** em `eslint.config.mjs` e nas regras de lint. Custo zero de corrigir.
+
+---
+
+# Pendências abertas ao fim da Fatia 4
+
+## Para a Fatia 5 (perfil de clínica)
+
+**Migração `0003`: endurecer o schema de termo.** Falta `unique (clinica_id, finalidade, nome)` em `termo` e um índice único parcial em `termo_versao (termo_id) where vigente_ate is null`. Sem eles, duas assinaturas simultâneas do mesmo termo com texto diferente podem criar duas versões "vigentes", e a leitura escolhe uma arbitrariamente. Numa peça que existe para provar o que o paciente autorizou, estado ambíguo sobre qual versão vale é um problema. É dívida pré-existente do baseline, não introduzida pela Fatia 4 — e a Fatia 5 mexe em termo por perfil, então é o momento natural.
+
+**Ligar o `request_id` num middleware.** `comNovoContextoRequest` existe em `lib/contexto-request.ts` e **não tem nenhum call site de produção**. Consequência: cada `registrarEvento` e cada linha de log gera um `request_id` novo, então nada correlaciona com nada dentro do mesmo request HTTP. A coluna existe e é decorativa. A Fatia 4 piorou o sintoma ao adicionar o logger como segundo consumidor do mesmo buraco.
+
+## Menores, sem prazo
+
+**`revogarConsentimento` não grava `valorAntes`** na auditoria — só `valorDepois: { revogadoEm }`. O "antes" é implícito (null), mas foge do padrão de antes/depois do resto.
+
+**Erros de domínio em `revogarConsentimento` são `Error` genérico** ("Consentimento não encontrado", "Consentimento já revogado"), enquanto a base já tem o idioma de erro tipado (`PermissaoNegada`). Sem risco — nenhuma dessas mensagens carrega dado de paciente — só inconsistência de estilo.
+
+**Limite do sanitizador com `valor` solto.** `medida.valor` é dado de saúde e `recebimento.valor` é financeiro; a proteção hoje depende do call site logar a entidade pelo nome (`{ medida }`), o que é convenção de chamada e não garantia do compilador. Está documentado dentro de `campos-proibidos.ts`.
