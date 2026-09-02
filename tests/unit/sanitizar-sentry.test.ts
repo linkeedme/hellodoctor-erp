@@ -105,6 +105,131 @@ describe("sanitizarParaSentry — capitalização diferente", () => {
   });
 });
 
+describe("sanitizarParaSentry — Error com propriedade própria proibida (fix round 1, achado 1)", () => {
+  /**
+   * Reprodução exata da review: uma classe de erro que carrega dado de
+   * paciente como propriedade própria (parameter properties, o mesmo
+   * idioma de `PermissaoNegada` em lib/autorizacao/verificar.ts), não só
+   * na mensagem. Antes da correção, o loop de propriedades do erro
+   * recursava no VALOR sem nunca comparar a CHAVE contra a lista — uma
+   * string como "Maria Silva" caía no fallback `return valor` de
+   * `removerCamposProibidos` (string não é objeto/array/Error) e saía
+   * intacta dentro de `extra`.
+   */
+  class ErroComContexto extends Error {
+    constructor(
+      mensagem: string,
+      contexto: Record<string, unknown>,
+    ) {
+      super(mensagem);
+      Object.assign(this, contexto);
+    }
+  }
+
+  it("remove nome/cpf de uma propriedade própria do erro, mantendo o código", () => {
+    const erro = new ErroComContexto("falha", {
+      nome: "Maria Silva",
+      cpf: "12345678900",
+      codigo: "X1",
+    });
+    const resultado = sanitizarParaSentry(erro) as {
+      tipoErro: unknown;
+      extra: { nome: unknown; cpf: unknown; codigo: unknown };
+    };
+    expect(resultado.tipoErro).toBe("Error");
+    expect(resultado.extra.nome).toBe("[removido]");
+    expect(resultado.extra.cpf).toBe("[removido]");
+    expect(resultado.extra.codigo).toBe("X1");
+    const serializado = JSON.stringify(resultado);
+    expect(serializado).not.toContain("Maria Silva");
+    expect(serializado).not.toContain("12345678900");
+  });
+
+  it("também remove campo proibido aninhado dentro de uma propriedade própria do erro", () => {
+    const erro = new ErroComContexto("falha ao processar paciente", {
+      paciente: { nome: "João Pereira", idade: 33 },
+    });
+    const resultado = sanitizarParaSentry(erro) as {
+      extra: { paciente: { nome: unknown; idade: unknown } };
+    };
+    expect(resultado.extra.paciente.nome).toBe("[removido]");
+    expect(resultado.extra.paciente.idade).toBe(33);
+    expect(JSON.stringify(resultado)).not.toContain("João Pereira");
+  });
+});
+
+describe("sanitizarParaSentry — campos do schema além dos 5 literais do brief (fix round 1, achado 2)", () => {
+  it.each(["endereco", "responsavel_legal", "evidencia", "posologia", "medida", "medidas"])(
+    "remove o campo proibido '%s'",
+    (campo) => {
+      const entrada = { [campo]: "dado-sensivel", idade: 40 };
+      const resultado = sanitizarParaSentry(entrada) as Record<string, unknown>;
+      expect(resultado[campo]).toBe("[removido]");
+      expect(resultado.idade).toBe(40);
+    },
+  );
+
+  /**
+   * O trade-off registrado em campos-proibidos.ts: "valor" sozinho NÃO
+   * está na lista (redigiria todo log financeiro para proteger um caso
+   * específico). A defesa para `medida.valor` é bloquear o contêiner
+   * ("medida"/"medidas") inteiro — cobre o call site idiomático desta
+   * base (logar a entidade pelo nome do domínio). `recebimento.valor`
+   * continua visível porque nada nesta base o embrulha sob uma chave
+   * proibida.
+   */
+  it("medida.valor sai redigido quando embrulhado sob a chave 'medida' (convenção de call site)", () => {
+    const entrada = { medida: { tipo: "circunferencia_braco", valor: 32.5, unidade: "cm" } };
+    const resultado = sanitizarParaSentry(entrada) as { medida: unknown };
+    expect(resultado.medida).toBe("[removido]");
+  });
+
+  it("recebimento.valor (financeiro) permanece intacto — não é dado de paciente", () => {
+    const entrada = { recebimento: { valor: 150.0, formaPagamento: "pix" } };
+    const resultado = sanitizarParaSentry(entrada) as { recebimento: { valor: unknown; formaPagamento: unknown } };
+    expect(resultado.recebimento.valor).toBe(150.0);
+    expect(resultado.recebimento.formaPagamento).toBe("pix");
+  });
+});
+
+describe("sanitizarParaSentry — limite de profundidade (fix round 1, achado 4)", () => {
+  function construirObjetoProfundo(profundidade: number, folha: unknown): unknown {
+    let atual = folha;
+    for (let i = 0; i < profundidade; i++) {
+      atual = { proximo: atual };
+    }
+    return atual;
+  }
+
+  it("não estoura a pilha com um objeto de 100 mil níveis de profundidade, e não vaza o dado da folha", () => {
+    const objetoProfundo = construirObjetoProfundo(100_000, { cpf: "12345678900" });
+    expect(() => sanitizarParaSentry(objetoProfundo)).not.toThrow();
+    const resultado = sanitizarParaSentry(objetoProfundo);
+    expect(JSON.stringify(resultado)).not.toContain("12345678900");
+  });
+
+  it("trunca com um marcador ao passar do limite, em vez de continuar indefinidamente", () => {
+    const objetoAlem = construirObjetoProfundo(50, { cpf: "12345678900" });
+    const resultado = sanitizarParaSentry(objetoAlem);
+    expect(JSON.stringify(resultado)).toContain("[profundo demais]");
+  });
+});
+
+describe("sanitizarParaSentry — mesma referência em dois ramos, sem ciclo (achado menor)", () => {
+  it("NÃO marca a segunda ocorrência como circular quando não há ciclo de verdade", () => {
+    const compartilhado = { nome: "Fernanda Lima", idade: 45 };
+    const entrada = { a: compartilhado, b: compartilhado };
+    const resultado = sanitizarParaSentry(entrada) as {
+      a: { nome: unknown; idade: unknown };
+      b: { nome: unknown; idade: unknown };
+    };
+    expect(resultado.a.idade).toBe(45);
+    expect(resultado.b.idade).toBe(45);
+    expect(resultado.a.nome).toBe("[removido]");
+    expect(resultado.b.nome).toBe("[removido]");
+  });
+});
+
 describe("sanitizarParaSentry — sabotagem de profundidade (prova negativa manual)", () => {
   it("um objeto raso com o campo proibido no primeiro nível também é removido (não é o único caso coberto)", () => {
     // Este teste sozinho é o "de fachada" citado no brief — passa mesmo se

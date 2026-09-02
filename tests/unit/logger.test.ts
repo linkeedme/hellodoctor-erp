@@ -13,7 +13,30 @@ vi.mock("server-only", () => ({}));
 vi.mock("@/lib/auth/sessao", () => ({ obterSessao: obterSessaoMock }));
 
 const { log } = await import("@/lib/observabilidade/logger");
-const { CAMPOS_PROIBIDOS_PACIENTE } = await import("@/lib/observabilidade/campos-proibidos");
+
+/**
+ * Fix round 1, achado 3: esta lista é digitada aqui, literalmente — NÃO
+ * importada de `lib/observabilidade/campos-proibidos.ts`. Um teste que
+ * deriva o que testar da própria lista de produção só prova que a
+ * implementação redige o que ela mesma diz que redige, nunca que ela
+ * redige o que o domínio exige (foi assim que a lista incompleta do
+ * achado 2 escapou destes testes na primeira rodada). Se alguém remover
+ * um campo desta lista em `campos-proibidos.ts`, este teste tem que
+ * falhar — e só falha porque o valor está fixo aqui, não importado de lá.
+ */
+const CAMPOS_PROIBIDOS_ESPERADOS = [
+  "nome",
+  "cpf",
+  "contato",
+  "dados",
+  "texto",
+  "endereco",
+  "responsavel_legal",
+  "evidencia",
+  "posologia",
+  "medida",
+  "medidas",
+] as const;
 
 const SESSAO_FALSA = {
   usuarioId: "11111111-1111-1111-1111-111111111111",
@@ -73,7 +96,7 @@ describe("log — nunca emite campo de paciente (RNF-013/RNF-021)", () => {
     obterSessaoMock.mockResolvedValue(null);
   });
 
-  it.each(CAMPOS_PROIBIDOS_PACIENTE)("remove o campo proibido '%s' de dados, em qualquer chamada", async (campo) => {
+  it.each(CAMPOS_PROIBIDOS_ESPERADOS)("remove o campo proibido '%s' de dados, em qualquer chamada", async (campo) => {
     const spy = vi.spyOn(console, "info").mockImplementation(() => {});
     const valorSensivel = `valor-sensivel-de-${campo}`;
     await log.info("evento com dado de paciente", { paciente: { [campo]: valorSensivel } });
@@ -95,6 +118,27 @@ describe("log — nunca emite campo de paciente (RNF-013/RNF-021)", () => {
     const erroLogado = linha.erro as Record<string, unknown>;
     expect(erroLogado.tipoErro).toBe("Error");
     expect(erroLogado.message).toBeUndefined();
+    spy.mockRestore();
+  });
+});
+
+describe("log — nunca lança, mesmo quando a sanitização falha por um motivo inesperado (fix round 1, achado 4)", () => {
+  beforeEach(() => {
+    obterSessaoMock.mockResolvedValue(null);
+  });
+
+  it("dados com um getter que lança ao ser lido não derruba log.info", async () => {
+    const payloadArmadilha: Record<string, unknown> = {};
+    Object.defineProperty(payloadArmadilha, "campo", {
+      enumerable: true,
+      get(): string {
+        throw new Error("leitura da propriedade falhou");
+      },
+    });
+    const spy = vi.spyOn(console, "info").mockImplementation(() => {});
+    await expect(log.info("evento com payload hostil", payloadArmadilha)).resolves.toBeUndefined();
+    const linha = ultimaLinhaLogada(spy);
+    expect(linha.dados).toBe("[falha ao sanitizar]");
     spy.mockRestore();
   });
 });

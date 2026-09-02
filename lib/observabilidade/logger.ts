@@ -23,6 +23,23 @@ async function contextoDeSessao(): Promise<{ clinicaId?: string; usuarioId?: str
   }
 }
 
+const FALHA_AO_SANITIZAR = "[falha ao sanitizar]";
+
+/**
+ * `sanitizarParaSentry` tem limite de profundidade e não deveria lançar —
+ * mas um getter que lança ao ser lido (`Object.entries` o aciona) foge do
+ * que a sanitização controla. Logger que quebra o request por causa do
+ * PAYLOAD que ele estava tentando logar é exatamente o cenário que o
+ * brief pede para evitar: nunca deixamos essa exceção subir.
+ */
+function sanitizarComSeguranca(valor: unknown): unknown {
+  try {
+    return sanitizarParaSentry(valor);
+  } catch {
+    return FALHA_AO_SANITIZAR;
+  }
+}
+
 async function escrever(nivel: Nivel, mensagem: string, dados: unknown, erro: unknown): Promise<void> {
   const { clinicaId, usuarioId } = await contextoDeSessao();
 
@@ -33,8 +50,8 @@ async function escrever(nivel: Nivel, mensagem: string, dados: unknown, erro: un
   };
   if (clinicaId !== undefined) linha.clinica_id = clinicaId;
   if (usuarioId !== undefined) linha.usuario_id = usuarioId;
-  if (erro !== undefined) linha.erro = sanitizarParaSentry(erro);
-  if (dados !== undefined) linha.dados = sanitizarParaSentry(dados);
+  if (erro !== undefined) linha.erro = sanitizarComSeguranca(erro);
+  if (dados !== undefined) linha.dados = sanitizarComSeguranca(dados);
 
   const linhaSerializada = JSON.stringify(linha);
   if (nivel === "erro") {
